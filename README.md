@@ -39,11 +39,17 @@ Or, if this repo is served with **GitHub Pages**, it runs live at
 
 **The Collection — lanterns of the world**
 - Eight cultural styles, each with its own silhouette, palette, a
-  signature soundscape, and a short history note:
+  signature soundscape, **its own night sky**, and a short history note:
   Vietnamese **Hội An**, Chinese **Dēnglóng**, Japanese **Chōchin** and
   **Andon**, Korean **Cheongsachorong**, Indian **Kandil**, Thai
   **Khom Loi**, and a Moroccan pierced-metal style.
-- Pick one to reshape the whole night.
+- Pick one from the Collection panel, **swipe** left/right, or use the
+  **← →** arrow keys to travel between cultures.
+
+**Controls**
+- Dock: **Kindle all**, **Dim**, **Release** (let the lit lanterns drift
+  away), and **New** for a fresh gathering.
+- A **mute** toggle sits beside the menu.
 
 **Gestures**
 - **Kindle all** / **Dim all** — light or quiet the whole alley.
