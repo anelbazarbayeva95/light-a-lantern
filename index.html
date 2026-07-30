@@ -47,6 +47,10 @@
 
   #lanterns{position:absolute;inset:0;}
   .lantern{position:absolute;cursor:pointer;transform-origin:top center;will-change:transform;-webkit-tap-highlight-color:transparent;}
+  .lantern.entering{animation:lanternIn .8s var(--ease) both;animation-delay:var(--in-delay,0ms);}
+  @keyframes lanternIn{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
+  .lantern.leaving{animation:lanternOut .55s var(--ease) forwards;pointer-events:none;}
+  @keyframes lanternOut{to{opacity:0;transform:translateY(-24px);}}
   .sway{animation:sway var(--sd,7s) ease-in-out infinite;animation-delay:var(--sdl,0s);}
   @keyframes sway{0%,100%{transform:rotate(var(--sa,1.4deg));}50%{transform:rotate(calc(var(--sa,1.4deg)*-1));}}
   .cord{width:1px;height:var(--cord,30vh);margin:0 auto;background:linear-gradient(180deg,transparent,rgba(239,232,216,0.16));}
@@ -76,8 +80,8 @@
   nav .links button{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);background:none;border:none;cursor:pointer;padding:0;transition:color .2s;}
   nav .links button:hover{color:var(--ink);}
   /* prev / next culture preview cards (swipe affordance) */
-  .swipe-card{position:fixed;top:50%;transform:translateY(-50%);z-index:6;width:82px;
-    display:flex;flex-direction:column;align-items:center;gap:7px;
+  .swipe-card{position:fixed;top:74px;z-index:6;width:78px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
     border:1px solid var(--line);border-radius:6px;padding:11px 8px 10px;
     background:rgba(8,12,26,0.32);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
     cursor:pointer;opacity:.6;transition:opacity .6s var(--ease),border-color .2s;-webkit-tap-highlight-color:transparent;}
@@ -189,7 +193,7 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   @media(prefers-reduced-motion:reduce){
-    .sway,.star,#breathCue.active,.lantern.lit svg .core,
+    .sway,.star,#breathCue.active,.lantern.lit svg .core,.lantern.entering,.lantern.leaving,
     #lanterns.breathing .lantern.lit .halo,#lanterns.breathing .lantern.lit svg .core{animation:none!important;}
     .lantern.releasing{animation:releaseR 2s ease forwards;}
     @keyframes releaseR{to{opacity:0}}
@@ -552,7 +556,8 @@
 
   const rand=(a,b)=>a+Math.random()*(b-a);
 
-  function buildScene(){
+  let sceneToken=0;
+  function createLanterns(){
     layer.innerHTML="";
     const pal=state.palette, W=window.innerWidth, H=window.innerHeight, n=state.density;
     // sparse hanging arrangement: one lantern per shuffled column, generous air
@@ -562,14 +567,26 @@
       const x=(c+rand(0.28,0.72))*(W/cols);
       const yTop=rand(0.08,0.5)*H;
       const size=rand(112,168);
-      makeLantern(x,yTop,size,pal);
+      makeLantern(x,yTop,size,pal,i);
+    }
+  }
+  // smooth swap: existing lanterns drift up and fade, then the new set rises in
+  function buildScene(animated){
+    const tok=++sceneToken;
+    const old=[...layer.querySelectorAll(".lantern:not(.leaving)")];
+    if(animated!==false && old.length && !reduceMotion){
+      old.forEach(e=>{ e.style.pointerEvents="none"; e.classList.remove("sway"); e.classList.add("leaving"); });
+      setTimeout(()=>{ if(tok===sceneToken) createLanterns(); },430);
+    } else {
+      createLanterns();
     }
   }
 
-  function makeLantern(x,yTop,size,pal){
+  function makeLantern(x,yTop,size,pal,idx){
     const p=pal[(Math.random()*pal.length)|0];
     const el=document.createElement("div");
-    el.className="lantern"+(state.sway?" sway":"");
+    el.className="lantern entering";
+    el.style.setProperty("--in-delay",((idx||0)*55)+"ms");
     el.style.left=x+"px"; el.style.top="0"; el.style.width=size.toFixed(0)+"px"; el.style.marginLeft=(-size/2).toFixed(0)+"px";
     el.style.zIndex=String(2+(Math.random()*4|0));
     el.style.setProperty("--cord",yTop.toFixed(0)+"px");
@@ -584,6 +601,9 @@
     const light=()=>{ if(el.classList.contains("releasing"))return; if(Date.now()-(state._lastSwipe||0)<350)return; const was=el.classList.contains("lit"); el.classList.toggle("lit"); if(!was&&state.bell)bell(parseFloat(el.dataset.hz)); dismissHero(); };
     el.addEventListener("click",light);
     el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();light();} });
+    // once the entrance finishes, hand off to the gentle sway
+    el.addEventListener("animationend",function onIn(ev){ if(ev.animationName!=="lanternIn")return; el.classList.remove("entering"); if(state.sway)el.classList.add("sway"); el.removeEventListener("animationend",onIn); });
+    if(reduceMotion) el.classList.remove("entering");
     layer.appendChild(el);
   }
 
@@ -762,7 +782,7 @@
   (function(){ const s=STYLES[state.style],m=document.getElementById("moon"); document.body.style.background=s.sky; m.style.top=s.moon.top; m.style.left=s.moon.left; m.style.width=m.style.height=s.moon.r+"px"; })();
   updateSwipeCards();
   buildScene(); updateDensityLabel();
-  let rz=null; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(buildScene,250); });
+  let rz=null; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(()=>buildScene(false),250); });
   const kick=()=>{ if(state.volume>0)audio(); window.removeEventListener("pointerdown",kick); };
   window.addEventListener("pointerdown",kick);
 })();
