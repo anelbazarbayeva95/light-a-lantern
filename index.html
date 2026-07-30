@@ -39,12 +39,25 @@
     position: fixed;
     inset: 0;
     background:
-      radial-gradient(120% 90% at 50% -10%, #1a1330 0%, transparent 55%),
-      radial-gradient(80% 60% at 50% 120%, #120c22 0%, transparent 60%),
-      linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 70%, #050308 100%);
+      radial-gradient(70% 45% at 78% 16%, rgba(60,72,120,0.35) 0%, transparent 60%),
+      radial-gradient(120% 90% at 50% 108%, #0a1024 0%, transparent 55%),
+      linear-gradient(180deg, #0b1330 0%, #070c1e 55%, #04060f 100%);
     overflow: hidden;
     touch-action: manipulation;
   }
+
+  /* the moon */
+  #moon {
+    position: absolute;
+    top: 9%; right: 12%;
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 36%, #fdf6dc 0%, #f3e6b8 55%, #e8d59a 100%);
+    box-shadow: 0 0 50px 14px rgba(250,240,205,0.28), 0 0 120px 40px rgba(210,205,170,0.14);
+    pointer-events: none;
+    z-index: 0;
+  }
+  @media (max-width: 520px) { #moon { width: 66px; height: 66px; top: 7%; } }
 
   /* soft floating dust / stars */
   #stars { position: absolute; inset: 0; pointer-events: none; opacity: 0.5; }
@@ -347,6 +360,7 @@
 </head>
 <body>
   <main id="scene">
+    <div id="moon" aria-hidden="true"></div>
     <div id="stars" aria-hidden="true"></div>
     <div id="lanterns" role="group" aria-label="Hanging lanterns. Tap one to light it."></div>
     <div id="breathCue" aria-hidden="true"><span class="label">breathe</span></div>
@@ -383,7 +397,7 @@
 
     <div class="field">
       <label>Lantern density · <span id="densityVal">medium</span></label>
-      <input type="range" id="density" min="16" max="110" value="52" step="2" />
+      <input type="range" id="density" min="14" max="90" value="36" step="2" />
     </div>
 
     <div class="field toggle">
@@ -527,7 +541,7 @@
 
   const state = {
     mood: "festival",
-    density: 52,
+    density: 36,
     sway: !reduceMotion,
     bell: true,
     volume: 0.6,
@@ -703,86 +717,103 @@
 
   function rand(a, b) { return a + Math.random() * (b - a); }
 
-  const SHAPES = ["teardrop", "teardrop", "globe", "oval", "globe"];
+  const SHAPES = ["barrel", "barrel", "tall", "round"];
   let svgSeq = 0;
 
-  // Build one realistic silk-lantern SVG: vertical rib seams, wooden caps, tassel.
+  // a small painted gold flower (5 petals + center)
+  function blossom(x, y, r) {
+    let s = `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})">`;
+    for (let k = 0; k < 5; k++) {
+      s += `<ellipse cx="0" cy="${(-r * 1.4).toFixed(1)}" rx="${(r * 0.62).toFixed(1)}" ry="${(r * 1.1).toFixed(1)}" fill="#f2d891" transform="rotate(${k * 72})"/>`;
+    }
+    s += `<circle cx="0" cy="0" r="${(r * 0.7).toFixed(1)}" fill="#d9a24a"/></g>`;
+    return s;
+  }
+  // a painted sprig: a curving stem with a few blossoms, gold linework
+  function sprig(cx, cy, s, flip) {
+    const k = flip ? -1 : 1;
+    let g = `<g class="motif" transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) scale(${(s).toFixed(2)},${s.toFixed(2)})">`;
+    g += `<g fill="none" stroke="#e8c877" stroke-width="1.4" stroke-linecap="round">`;
+    g += `<path d="M0,34 C ${(-10*k)},14 ${(8*k)},-4 ${(-2*k)},-30"/>`;
+    g += `<path d="M${(-1*k)},12 C ${(-16*k)},6 ${(-24*k)},-4 ${(-32*k)},-12"/>`;
+    g += `<path d="M0,0 C ${(14*k)},-6 ${(22*k)},-16 ${(30*k)},-24"/>`;
+    g += `<path d="M0,-14 C ${(-8*k)},-22 ${(-6*k)},-34 ${(-10*k)},-42"/>`;
+    g += `</g>`;
+    g += blossom(-32 * k, -12, 4.2) + blossom(30 * k, -24, 4.6) + blossom(-10 * k, -42, 3.8) + blossom(-2 * k, -30, 3.4);
+    g += `</g>`;
+    return g;
+  }
+
+  // Build one decorative silk lantern: ombré silk, gold rib seams, painted floral
+  // motif, gold caps, red fringe skirt and a hanging tassel.
   function lanternSVG(silk, shape) {
     const id = ++svgSeq;
     const cx = 60;
-    let topY, botY, halfW, cy, ry, silhouette;
+    // barrel geometry: flat gold-capped top & bottom, bulging silk sides
+    let top = 30, bot = 172, halfW = 52, topHalf = 37, botHalf = 39;
+    if (shape === "tall")  { top = 26; bot = 182; halfW = 44; topHalf = 32; botHalf = 34; }
+    if (shape === "round") { top = 34; bot = 166; halfW = 55; topHalf = 40; botHalf = 42; }
+    const mid = (top + bot) / 2;
 
-    if (shape === "globe") {
-      topY = 24; botY = 150; halfW = 55;
-      cy = (topY + botY) / 2; ry = (botY - topY) / 2;
-      silhouette = `<ellipse cx="${cx}" cy="${cy}" rx="${halfW}" ry="${ry}"`;
-    } else if (shape === "oval") {
-      topY = 18; botY = 160; halfW = 45;
-      cy = (topY + botY) / 2; ry = (botY - topY) / 2;
-      silhouette = `<ellipse cx="${cx}" cy="${cy}" rx="${halfW}" ry="${ry}"`;
-    }
+    const bodyPath =
+      `M${cx - topHalf},${top} Q ${cx - halfW},${mid} ${cx - botHalf},${bot} `
+      + `L ${cx + botHalf},${bot} Q ${cx + halfW},${mid} ${cx + topHalf},${top} Z`;
 
-    // teardrop / onion shape via a symmetric bezier path (pointed top under cap, pointed base)
-    const midY = (topY + botY) / 2;
-    const teardropPath = () => {
-      const t = 16, b = 172, w = 50;
-      return `M60,${t} C ${60 + w},${t + 34} ${60 + w * 0.86},${b - 46} 60,${b} `
-           + `C ${60 - w * 0.86},${b - 46} ${60 - w},${t + 34} 60,${t} Z`;
-    };
-    let dPath, tTop, tBot, tHalf;
-    if (shape === "teardrop") { tTop = 16; tBot = 172; tHalf = 50; dPath = teardropPath(); }
-
-    const shapeAttr = (cls, fill, extra = "") =>
-      shape === "teardrop"
-        ? `<path class="${cls}" d="${dPath}" fill="${fill}" ${extra}/>`
-        : `${silhouette} class="${cls}" fill="${fill}" ${extra}/>`;
-
-    // rib meridians converge at top & bottom poles
-    const rt = shape === "teardrop" ? tTop : topY;
-    const rb = shape === "teardrop" ? tBot : botY;
-    const rw = shape === "teardrop" ? tHalf : halfW;
-    const rmid = (rt + rb) / 2;
+    // vertical rib seams following the silhouette
     let ribs = "";
-    [-1, -0.64, -0.3, 0.3, 0.64, 1, 0].forEach(f => {
-      const cxr = cx + f * rw;
-      const sw = Math.abs(f) > 0.9 ? 1.2 : 0.7;
-      ribs += `<path d="M${cx},${rt} Q ${cxr.toFixed(1)},${rmid} ${cx},${rb}" fill="none" stroke="rgba(28,16,10,0.5)" stroke-width="${sw}"/>`;
+    [-1, -0.66, -0.33, 0, 0.33, 0.66, 1].forEach(f => {
+      const sw = Math.abs(f) > 0.9 ? 1 : 0.6;
+      ribs += `<path d="M${(cx + f * topHalf).toFixed(1)},${top} Q ${(cx + f * halfW).toFixed(1)},${mid} ${(cx + f * botHalf).toFixed(1)},${bot}" `
+        + `fill="none" stroke="rgba(30,18,10,0.32)" stroke-width="${sw}"/>`;
     });
 
-    // warm inner light (shown only when lit)
-    const core = `<ellipse class="core" cx="${cx}" cy="${(rmid - 6).toFixed(0)}" rx="${(rw * 0.62).toFixed(0)}" ry="${((rb - rt) * 0.34).toFixed(0)}" fill="url(#c${id})"/>`;
+    const core = `<ellipse class="core" cx="${cx}" cy="${(mid + 6).toFixed(0)}" rx="${(halfW * 0.62).toFixed(0)}" ry="${((bot - top) * 0.34).toFixed(0)}" fill="url(#c${id})"/>`;
 
-    // wooden caps
-    const capTop = `<rect x="58.4" y="${rt - 13}" width="3.2" height="13" fill="#1c130b"/>`
-                 + `<ellipse cx="${cx}" cy="${rt + 1}" rx="13" ry="6" fill="#241a10"/>`
-                 + `<ellipse cx="${cx}" cy="${rt}" rx="8" ry="3.5" fill="#3a2a18"/>`;
-    const capBot = `<ellipse cx="${cx}" cy="${rb - 2}" rx="9" ry="4.5" fill="#241a10"/>`;
+    // painted floral in the lower body (like the reference lanterns)
+    const motif = sprig(cx + (Math.random() * 10 - 5), mid + 30, 0.9 + Math.random() * 0.35, Math.random() < 0.5);
 
-    // tassel
-    const ty = rb + 1;
-    const tassel = `<line x1="${cx}" y1="${ty}" x2="${cx}" y2="${ty + 8}" stroke="#8a6a2c" stroke-width="1.6"/>`
-                 + `<circle cx="${cx}" cy="${ty + 9}" r="3.2" fill="#c79a3f"/>`
-                 + `<g stroke="#c79a3f" stroke-width="1.3">`
-                 + `<line x1="${cx}" y1="${ty + 11}" x2="${cx - 3}" y2="${ty + 34}"/>`
-                 + `<line x1="${cx}" y1="${ty + 11}" x2="${cx}" y2="${ty + 37}"/>`
-                 + `<line x1="${cx}" y1="${ty + 11}" x2="${cx + 3}" y2="${ty + 34}"/></g>`;
+    // gold caps
+    const capTop = `<rect x="56" y="${top - 14}" width="8" height="10" rx="2" fill="#6e4a1e"/>`
+      + `<rect x="${cx - topHalf - 1}" y="${top - 6}" width="${2 * topHalf + 2}" height="8" rx="3.5" fill="#a5772a"/>`
+      + `<rect x="${cx - topHalf + 3}" y="${top - 4}" width="${2 * topHalf - 6}" height="2" fill="#c9993f"/>`;
+    const capBot = `<rect x="${cx - botHalf - 1}" y="${bot - 2}" width="${2 * botHalf + 2}" height="8" rx="3.5" fill="#a5772a"/>`;
+
+    // red fringe skirt
+    let fringe = `<g stroke="#c0402b" stroke-width="2.4">`;
+    const fN = Math.max(9, Math.round(botHalf / 4));
+    for (let i = 0; i <= fN; i++) {
+      const fx = cx - botHalf + 3 + (i / fN) * (2 * botHalf - 6);
+      const fl = 12 + (i % 2 ? 3 : 0);
+      fringe += `<line x1="${fx.toFixed(1)}" y1="${bot + 6}" x2="${fx.toFixed(1)}" y2="${bot + 6 + fl}" />`;
+    }
+    fringe += `</g>`;
+
+    // tassel: cord, knot, hanging tuft
+    const ty = bot + 22;
+    const tassel = `<line x1="${cx}" y1="${bot + 18}" x2="${cx}" y2="${ty}" stroke="#9a6a24" stroke-width="1.8"/>`
+      + `<rect x="${cx - 4}" y="${ty}" width="8" height="13" rx="3" fill="#c0402b"/>`
+      + `<g stroke="#d99a3a" stroke-width="1.5">`
+      + `<line x1="${cx}" y1="${ty + 13}" x2="${cx - 3}" y2="${ty + 32}"/>`
+      + `<line x1="${cx}" y1="${ty + 13}" x2="${cx}" y2="${ty + 35}"/>`
+      + `<line x1="${cx}" y1="${ty + 13}" x2="${cx + 3}" y2="${ty + 32}"/></g>`;
 
     const vbH = ty + 40;
     return `<svg viewBox="0 0 120 ${vbH}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMin meet" aria-hidden="true">`
       + `<defs>`
-      + `<radialGradient id="g${id}" cx="42%" cy="34%" r="72%">`
-      + `<stop offset="0%" stop-color="${lighten(silk, 34)}"/>`
-      + `<stop offset="55%" stop-color="${silk}"/>`
-      + `<stop offset="100%" stop-color="${darken(silk, 34)}"/></radialGradient>`
-      + `<radialGradient id="c${id}" cx="50%" cy="44%" r="62%">`
-      + `<stop offset="0%" stop-color="rgba(255,246,222,0.95)"/>`
-      + `<stop offset="45%" stop-color="rgba(255,214,150,0.55)"/>`
+      + `<linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1">`
+      + `<stop offset="0%" stop-color="${lighten(silk, 30)}"/>`
+      + `<stop offset="48%" stop-color="${silk}"/>`
+      + `<stop offset="100%" stop-color="${darken(silk, 26)}"/></linearGradient>`
+      + `<radialGradient id="c${id}" cx="50%" cy="46%" r="60%">`
+      + `<stop offset="0%" stop-color="rgba(255,247,224,0.92)"/>`
+      + `<stop offset="45%" stop-color="rgba(255,216,150,0.5)"/>`
       + `<stop offset="100%" stop-color="rgba(255,180,90,0)"/></radialGradient></defs>`
-      + shapeAttr("silk", `url(#g${id})`)   // silk body
-      + core                                 // warm light
-      + ribs                                 // seams
-      + shapeAttr("scrim", "#08040e")        // dims the whole lantern when unlit
-      + capTop + capBot + tassel
+      + `<path class="silk" d="${bodyPath}" fill="url(#g${id})"/>`
+      + core
+      + ribs
+      + motif
+      + `<path class="scrim" d="${bodyPath}" fill="#07030c"/>`
+      + capTop + capBot + fringe + tassel
       + `</svg>`;
   }
 
@@ -791,19 +822,27 @@
     const pal = PALETTES[state.mood];
     const W = window.innerWidth, H = window.innerHeight;
     const count = state.density;
-    // loose grid across the FULL frame; oversized lanterns overlap for a packed market
-    const cols = Math.max(3, Math.round(Math.sqrt(count * W / (H * 0.95))));
+    // loose grid across the full frame, with organic gaps so the dark night
+    // breathes between clusters (like the reference illustrations)
+    const cols = Math.max(3, Math.round(Math.sqrt(count * W / (H * 0.92))));
     const rows = Math.ceil(count / cols);
-    const cellW = W / cols, cellH = (H * 0.98) / rows;
+    const cellW = W / cols, cellH = (H * 0.94) / rows;
     let made = 0;
     for (let r = 0; r < rows && made < count; r++) {
       for (let c = 0; c < cols && made < count; c++) {
-        const x = c * cellW + rand(0.28, 0.72) * cellW;
-        const yTop = Math.max(6, r * cellH + rand(-0.18, 0.34) * cellH);
-        const size = Math.min(190, Math.max(58, cellW * rand(1.02, 1.5)));
+        if (Math.random() < 0.2) continue; // organic gap
+        const x = c * cellW + rand(0.22, 0.78) * cellW;
+        const yTop = Math.max(6, r * cellH + rand(-0.12, 0.4) * cellH);
+        const size = Math.min(200, Math.max(64, cellW * rand(0.92, 1.32)));
         made++;
         makeLantern(x, yTop, size, pal, made);
       }
+    }
+    // guarantee a reasonable minimum if gaps ate too many
+    let guard = 0;
+    while (made < Math.min(count, 10) && guard++ < 40) {
+      makeLantern(rand(0.1, 0.9) * W, rand(10, H * 0.7), rand(80, 150), pal, made);
+      made++;
     }
   }
 
