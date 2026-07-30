@@ -1,9 +1,15 @@
 # Light a Lantern 🏮
 
-A quiet, single-file meditation web app: a dark alley of hanging silk
-lanterns — inspired by the lantern-lit streets of **Hội An, Vietnam** —
-that you tap to light, with warm ambient sound synthesized live in your
-browser. It's a small ritual for slowing down, and for letting go.
+A quiet, single-file meditation web app: a **minimal moonlit night** of
+silk lanterns — inspired by the lantern-lit streets of **Hội An,
+Vietnam** — that you tap to light, with warm ambient sound synthesized
+live in your browser. It's a small ritual for slowing down, and for
+letting go.
+
+The design is deliberately spare and editorial: a deep-navy sky, a moon,
+a handful of glowing lanterns with room to breathe, an elegant serif
+headline and tiny monospace labels. Controls live in unobtrusive panels
+(Sound · Ritual · Configure) so the night stays calm.
 
 **No dependencies. No external assets. No build step.** Everything —
 including every sound — lives in one `index.html` and is generated at
