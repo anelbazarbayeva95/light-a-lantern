@@ -36,10 +36,11 @@
 
   /* ---------- scene ---------- */
   #scene{position:fixed;inset:0;overflow:hidden;touch-action:manipulation;}
-  #moon{position:absolute;top:9%;right:12%;width:82px;height:82px;border-radius:50%;
+  #moon{position:absolute;top:9%;left:80%;width:82px;height:82px;border-radius:50%;
     background:radial-gradient(circle at 38% 36%,#fdf6dc,#efe1b4 60%,#e1d097);
-    box-shadow:0 0 46px 12px rgba(250,240,205,0.22),0 0 130px 46px rgba(200,196,160,0.12);z-index:0;}
-  @media(max-width:560px){#moon{width:60px;height:60px;top:7%;}}
+    box-shadow:0 0 46px 12px rgba(250,240,205,0.22),0 0 130px 46px rgba(200,196,160,0.12);z-index:0;
+    transition:top 1s var(--ease),left 1s var(--ease),width 1s var(--ease),height 1s var(--ease);}
+  @media(max-width:560px){#moon{transform:scale(0.7);transform-origin:top left;}}
   #stars{position:absolute;inset:0;pointer-events:none;}
   .star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:.4;animation:twinkle var(--tw,6s) ease-in-out infinite;}
   @keyframes twinkle{0%,100%{opacity:.12}50%{opacity:.6}}
@@ -74,6 +75,15 @@
   .wordmark .idx{color:var(--ink-3);letter-spacing:.1em;margin-left:9px;}
   nav .links button{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);background:none;border:none;cursor:pointer;padding:0;transition:color .2s;}
   nav .links button:hover{color:var(--ink);}
+  /* on-screen culture arrows (swipe affordance) */
+  .nav-arrow{position:fixed;top:50%;transform:translateY(-50%);z-index:6;width:44px;height:64px;
+    display:flex;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;
+    color:var(--ink-2);opacity:.55;transition:opacity .2s,color .2s;-webkit-tap-highlight-color:transparent;}
+  .nav-arrow:hover{opacity:1;color:var(--ink);}
+  .nav-arrow.left{left:6px;}
+  .nav-arrow.right{right:6px;}
+  @media(max-width:560px){.nav-arrow{width:36px;height:52px;opacity:.7;}}
+
   .navright{display:flex;align-items:center;gap:10px;}
   .iconbtn{width:32px;height:30px;border:1px solid var(--line);border-radius:5px;background:none;color:var(--ink-2);cursor:pointer;transition:border-color .2s,color .2s;display:flex;align-items:center;justify-content:center;padding:0;}
   .iconbtn:hover{border-color:var(--line-2);color:var(--ink);}
@@ -216,6 +226,13 @@
     <h1>Kindle a light,<br>sit a while,<br>then <span class="em">let it drift.</span></h1>
   </div>
   <div id="hint" class="label">tap a lantern to begin</div>
+
+  <button class="nav-arrow left" id="arrowPrev" aria-label="Previous lantern culture">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+  </button>
+  <button class="nav-arrow right" id="arrowNext" aria-label="Next lantern culture">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+  </button>
 
   <div id="timerReadout" aria-live="polite"></div>
   <div id="toast" role="status" aria-live="polite"></div>
@@ -375,39 +392,40 @@
 
   // ---------- the collection: eight lantern cultures ----------
   // kind = silhouette · sound = signature ambience · origin + note = history
+  // each sky: a saturated horizon/overhead glow + a clearly hued night gradient
   const SKY = {
-    navy:"radial-gradient(58% 40% at 80% 14%, rgba(72,86,132,0.34), transparent 62%), linear-gradient(180deg,#0d1428 0%,#080c1a 58%,#04060f 100%)",
-    crimson:"radial-gradient(60% 42% at 80% 14%, rgba(150,64,64,0.30), transparent 62%), linear-gradient(180deg,#1a0e14 0%,#12080c 58%,#0a0406 100%)",
-    indigo:"radial-gradient(58% 40% at 80% 14%, rgba(96,108,160,0.30), transparent 62%), linear-gradient(180deg,#101a34 0%,#0a1020 58%,#05060f 100%)",
-    amber:"radial-gradient(58% 40% at 80% 14%, rgba(150,120,68,0.26), transparent 62%), linear-gradient(180deg,#181206 0%,#100b06 55%,#080503 100%)",
-    royal:"radial-gradient(58% 40% at 80% 14%, rgba(80,104,176,0.32), transparent 62%), linear-gradient(180deg,#0c1636 0%,#081026 58%,#04060f 100%)",
-    violet:"radial-gradient(58% 42% at 80% 14%, rgba(150,92,172,0.30), transparent 62%), linear-gradient(180deg,#1c1030 0%,#140a24 58%,#0a0414 100%)",
-    teal:"radial-gradient(60% 40% at 50% 104%, rgba(120,140,150,0.16), transparent 60%), radial-gradient(50% 34% at 80% 12%, rgba(92,124,142,0.28), transparent 60%), linear-gradient(180deg,#0a1622 0%,#08101a 58%,#04080f 100%)",
-    warm:"radial-gradient(58% 40% at 80% 14%, rgba(150,112,60,0.26), transparent 62%), linear-gradient(180deg,#151410 0%,#0e0e0a 55%,#060604 100%)",
+    navy:"radial-gradient(70% 55% at 78% 12%, rgba(96,116,190,0.55), transparent 60%), linear-gradient(180deg,#16224c 0%,#0e1530 55%,#060a18 100%)",
+    crimson:"radial-gradient(72% 56% at 78% 12%, rgba(214,84,72,0.55), transparent 60%), linear-gradient(180deg,#3a1020 0%,#240a14 55%,#12060a 100%)",
+    indigo:"radial-gradient(72% 56% at 78% 12%, rgba(120,120,220,0.52), transparent 60%), linear-gradient(180deg,#1c2154 0%,#141640 55%,#0a0a20 100%)",
+    amber:"radial-gradient(74% 58% at 78% 12%, rgba(224,150,70,0.50), transparent 60%), linear-gradient(180deg,#3a260c 0%,#241606 55%,#120b04 100%)",
+    royal:"radial-gradient(72% 56% at 78% 12%, rgba(80,130,224,0.58), transparent 60%), linear-gradient(180deg,#122258 0%,#0c1640 55%,#050a20 100%)",
+    violet:"radial-gradient(74% 58% at 78% 12%, rgba(190,110,210,0.52), transparent 60%), linear-gradient(180deg,#301652 0%,#200e3a 55%,#120820 100%)",
+    teal:"radial-gradient(80% 46% at 50% 100%, rgba(90,190,180,0.34), transparent 60%), radial-gradient(60% 44% at 80% 12%, rgba(90,170,180,0.46), transparent 60%), linear-gradient(180deg,#0c2c34 0%,#0a1c26 55%,#050e16 100%)",
+    warm:"radial-gradient(74% 58% at 78% 12%, rgba(216,150,80,0.46), transparent 60%), linear-gradient(180deg,#2e2410 0%,#1c160a 55%,#0e0a04 100%)",
   };
   const STYLES = {
-    hoian:{kind:"hoian",name:"Hội An",sound:"rain",sky:SKY.navy,origin:"Vietnam · Hội An",
+    hoian:{kind:"hoian",name:"Hội An",sound:"rain",sky:SKY.navy,moon:{top:"9%",left:"80%",r:82},origin:"Vietnam · Hội An",
       note:"Silk-over-bamboo lanterns in lotus and garlic shapes, glowing along the old riverside town.",
       pal:[["#b8564a",293.66],["#2c7d86",349.23],["#caa23e",392.00],["#4a5aa0",440.00],["#7a4a86",523.25],["#c9b48a",329.63]]},
-    chinese:{kind:"round",name:"Dēnglóng",sound:"chimes",sky:SKY.crimson,origin:"China · Dēnglóng 灯笼",
+    chinese:{kind:"round",name:"Dēnglóng",sound:"chimes",sky:SKY.crimson,moon:{top:"11%",left:"7%",r:76},origin:"China · Dēnglóng 灯笼",
       note:"Round silk-and-bamboo lanterns, red with gold tassels — symbols of luck and reunion, lit for the Lantern Festival.",
       pal:[["#c0392b",261.63],["#a81f1f",311.13],["#d4452f",349.23],["#b22b26",392.00],["#cf5a3a",440.00],["#9e2b25",523.25]]},
-    chochin:{kind:"chochin",name:"Chōchin",sound:"night",sky:SKY.indigo,origin:"Japan · Chōchin 提灯",
+    chochin:{kind:"chochin",name:"Chōchin",sound:"night",sky:SKY.indigo,moon:{top:"6%",left:"45%",r:70},origin:"Japan · Chōchin 提灯",
       note:"Collapsible bamboo-and-washi lanterns with horizontal ribs, hung outside shrines and restaurants.",
       pal:[["#e6ddcb",329.63],["#d8cfc0",392.00],["#c0392b",261.63],["#ded6c4",440.00],["#cf5a3a",311.13],["#efe7d6",523.25]]},
-    andon:{kind:"andon",name:"Andon",sound:"drone",sky:SKY.amber,origin:"Japan · Andon 行灯",
+    andon:{kind:"andon",name:"Andon",sound:"drone",sky:SKY.amber,moon:{top:"17%",left:"82%",r:66},origin:"Japan · Andon 行灯",
       note:"A square wooden-framed paper lamp for quiet indoor light — more architectural than the chōchin.",
       pal:[["#e0c48a",261.63],["#d8b877",311.13],["#e6cf9a",349.23],["#d0aa66",392.00],["#e8d4a2",440.00]]},
-    korean:{kind:"korean",name:"Korean",sound:"chimes",sky:SKY.royal,origin:"Korea · Cheongsachorong 청사초롱",
+    korean:{kind:"korean",name:"Korean",sound:"chimes",sky:SKY.royal,moon:{top:"8%",left:"12%",r:88},origin:"Korea · Cheongsachorong 청사초롱",
       note:"A wedding lantern split into blue and red — the harmony of yin and yang.",
       pal:[["#8a3b6a",329.63],["#7a3b7a",392.00],["#8a3b5a",440.00],["#6a3b8a",493.88]]},
-    kandil:{kind:"kandil",name:"Kandil",sound:"chimes",sky:SKY.violet,origin:"India · Akash Kandil",
+    kandil:{kind:"kandil",name:"Kandil",sound:"chimes",sky:SKY.violet,moon:{top:"6%",left:"76%",r:72},origin:"India · Akash Kandil",
       note:"A bright geometric star hung outside homes for Diwali, the festival of lights.",
       pal:[["#e08a1e",293.66],["#d4462b",349.23],["#e6b422",392.00],["#c0329a",466.16],["#e07a1e",523.25]]},
-    khomloi:{kind:"khomloi",name:"Khom Loi",sound:"night",sky:SKY.teal,origin:"Thailand · Khom Loi",
+    khomloi:{kind:"khomloi",name:"Khom Loi",sound:"night",sky:SKY.teal,moon:{top:"13%",left:"38%",r:96},origin:"Thailand · Khom Loi",
       note:"Paper sky-lanterns released together at Yi Peng, carrying wishes and misfortune away into the night.",
       pal:[["#f0d9a0",349.23],["#ecca85",392.00],["#f2e0b0",440.00],["#e8b96a",293.66]]},
-    moroccan:{kind:"moroccan",name:"Moroccan",sound:"drone",sky:SKY.warm,origin:"Morocco · Pierced metal",
+    moroccan:{kind:"moroccan",name:"Moroccan",sound:"drone",sky:SKY.warm,moon:{top:"10%",left:"6%",r:70},origin:"Morocco · Pierced metal",
       note:"Pierced lanterns casting lace-like patterns of light, reimagined here in warm paper.",
       pal:[["#b8862b",293.66],["#8a3f2a",349.23],["#2f6f6a",392.00],["#7a3f86",466.16],["#b8562b",523.25]]},
   };
@@ -644,6 +662,7 @@
     const s=STYLES[id]; if(!s)return; audio();
     state.style=id; state.palette=palOf(id);
     document.body.style.background=s.sky;
+    const moon=document.getElementById("moon"); moon.style.top=s.moon.top; moon.style.left=s.moon.left; moon.style.width=moon.style.height=s.moon.r+"px";
     setActive("#styleChips","style",id);
     document.querySelectorAll("#moodChips .chip").forEach(c=>c.classList.remove("on"));
     document.getElementById("styleNote").innerHTML=`<span class="note-origin">${s.origin}</span>${s.note}`;
@@ -654,6 +673,8 @@
   // cycle cultures (swipe / arrow keys)
   const STYLE_IDS=Object.keys(STYLES);
   function cycleStyle(dir){ let i=STYLE_IDS.indexOf(state.style); i=(i+dir+STYLE_IDS.length)%STYLE_IDS.length; applyStyle(STYLE_IDS[i]); }
+  document.getElementById("arrowPrev").onclick=()=>cycleStyle(-1);
+  document.getElementById("arrowNext").onclick=()=>cycleStyle(1);
   // initial note (no side effects)
   (function(){ const s=STYLES[state.style]; document.getElementById("styleNote").innerHTML=`<span class="note-origin">${s.origin}</span>${s.note}`; })();
 
@@ -711,6 +732,8 @@
     document.addEventListener("keydown",e=>{ if(e.key==="Escape")close(); });
   })();
 
+  // initial sky + moon for the default culture
+  (function(){ const s=STYLES[state.style],m=document.getElementById("moon"); document.body.style.background=s.sky; m.style.top=s.moon.top; m.style.left=s.moon.left; m.style.width=m.style.height=s.moon.r+"px"; })();
   buildScene(); updateDensityLabel();
   let rz=null; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(buildScene,250); });
   const kick=()=>{ if(state.volume>0)audio(); window.removeEventListener("pointerdown",kick); };
