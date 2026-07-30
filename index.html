@@ -73,7 +73,28 @@
   .wordmark .idx{color:var(--ink-3);letter-spacing:.1em;margin-left:9px;}
   nav .links button{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);background:none;border:none;cursor:pointer;padding:0;transition:color .2s;}
   nav .links button:hover{color:var(--ink);}
-  .navright{display:flex;align-items:center;gap:16px;}
+  .navright{display:flex;align-items:center;gap:12px;}
+  .help{width:30px;height:30px;border:1px solid var(--line);border-radius:5px;background:none;color:var(--ink-2);font-family:var(--mono);font-size:12px;cursor:pointer;transition:border-color .2s,color .2s;}
+  .help:hover{border-color:var(--line-2);color:var(--ink);}
+
+  /* first-time instructions overlay */
+  #intro{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:24px;
+    background:rgba(5,7,14,0.66);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;transition:opacity .4s var(--ease);}
+  #intro.open{display:flex;opacity:1;}
+  .intro-card{width:min(460px,94vw);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:30px 30px 26px;
+    box-shadow:0 30px 90px rgba(0,0,0,0.6);transform:translateY(8px);transition:transform .5s var(--ease);}
+  #intro.open .intro-card{transform:translateY(0);}
+  .intro-card .eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;}
+  .intro-card h2{font-family:var(--serif);font-weight:500;font-size:26px;line-height:1.12;letter-spacing:-0.015em;color:var(--ink);margin-bottom:20px;}
+  .intro-card h2 .em{font-style:italic;color:var(--accent);}
+  .intro-card ol{list-style:none;counter-reset:step;margin-bottom:24px;}
+  .intro-card li{counter-increment:step;position:relative;padding-left:34px;margin-bottom:14px;font-family:var(--serif);font-size:14.5px;line-height:1.5;color:var(--ink-2);}
+  .intro-card li::before{content:counter(step);position:absolute;left:0;top:1px;width:20px;height:20px;border:1px solid var(--line-2);border-radius:50%;
+    font-family:var(--mono);font-size:10px;color:var(--accent);display:flex;align-items:center;justify-content:center;}
+  .intro-card li b{color:var(--ink);font-weight:500;}
+  .intro-card .begin{width:100%;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--bg);background:var(--accent);
+    border:none;border-radius:6px;padding:13px;cursor:pointer;transition:opacity .2s;}
+  .intro-card .begin:hover{opacity:.9;}
   .menu{width:34px;height:30px;border:1px solid var(--line);border-radius:5px;background:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;transition:border-color .2s;}
   .menu:hover{border-color:var(--line-2);}
   .menu span{display:block;width:15px;height:1px;background:var(--ink);}
@@ -170,16 +191,31 @@
       <button data-open="panelAbout">About</button>
     </div>
     <div class="navright">
-      <span class="label" id="clockTag">·&nbsp;·&nbsp;·</span>
+      <button class="help" id="btnHelp" aria-label="How to use">?</button>
       <button class="menu" data-open="panelConfigure" aria-label="Configure"><span></span><span></span><span></span></button>
     </div>
   </nav>
 
   <div id="hero">
-    <div class="kicker label">an evening ritual · Hội An after dark</div>
+    <div class="kicker label">an evening ritual · after dark</div>
     <h1>Kindle a light,<br>sit a while,<br>then <span class="em">let it drift.</span></h1>
   </div>
   <div id="hint" class="label">tap a lantern to begin</div>
+
+  <!-- first-time instructions -->
+  <div id="intro" role="dialog" aria-modal="true" aria-label="How to use">
+    <div class="intro-card">
+      <div class="eyebrow">Light a Lantern · how to</div>
+      <h2>A quiet ritual, in a few <span class="em">gestures</span></h2>
+      <ol>
+        <li><b>Tap a lantern</b> to kindle its glow and hear its bell — each colour rings a different note.</li>
+        <li><b>Kindle all</b> or <b>Dim</b> from the bar below to light or quiet the whole night.</li>
+        <li><b>Release</b> to let the lit lanterns drift up and fade away — a small letting-go.</li>
+        <li><b>Sounds</b>, <b>Ritual</b> and the <b>☰</b> menu add ambience, a breathing guide, and a timer.</li>
+      </ol>
+      <button class="begin" id="introBegin">Begin</button>
+    </div>
+  </div>
 
   <nav id="dock" aria-label="Controls">
     <button id="btnKindle">Kindle all</button>
@@ -492,7 +528,18 @@
   (function(){ const box=document.getElementById("stars"), n=reduceMotion?0:44; let h=""; for(let i=0;i<n;i++)h+=`<div class="star" style="left:${rand(0,100)}%;top:${rand(0,60)}%;--tw:${rand(4,9).toFixed(1)}s;animation-delay:${rand(0,6).toFixed(1)}s"></div>`; box.innerHTML=h; })();
 
   // clock tag
-  (function(){ const t=document.getElementById("clockTag"); const upd=()=>{ const d=new Date(); t.textContent=`Hội An · ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }; upd(); setInterval(upd,30000); })();
+  // first-time instructions
+  (function(){
+    const intro=document.getElementById("intro");
+    const open=()=>intro.classList.add("open");
+    const close=()=>{ intro.classList.remove("open"); try{localStorage.setItem("lal_seen","1");}catch(e){} };
+    let seen=false; try{seen=!!localStorage.getItem("lal_seen");}catch(e){}
+    if(!seen) open();
+    document.getElementById("introBegin").onclick=()=>{ audio(); close(); };
+    document.getElementById("btnHelp").onclick=open;
+    intro.addEventListener("click",e=>{ if(e.target===intro)close(); });
+    document.addEventListener("keydown",e=>{ if(e.key==="Escape")close(); });
+  })();
 
   buildScene(); updateDensityLabel();
   let rz=null; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(buildScene,250); });
