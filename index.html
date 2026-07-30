@@ -80,10 +80,11 @@
     display:flex;flex-direction:column;align-items:center;gap:7px;
     border:1px solid var(--line);border-radius:6px;padding:11px 8px 10px;
     background:rgba(8,12,26,0.32);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
-    cursor:pointer;opacity:.72;transition:opacity .2s,border-color .2s;-webkit-tap-highlight-color:transparent;}
-  .swipe-card:hover{opacity:1;border-color:var(--line-2);}
-  .swipe-card.prev{left:16px;}
-  .swipe-card.next{right:16px;}
+    cursor:pointer;opacity:.6;transition:opacity .6s var(--ease),border-color .2s;-webkit-tap-highlight-color:transparent;}
+  .swipe-card.idle{opacity:.1;}
+  .swipe-card:hover,.swipe-card.idle:hover{opacity:1;border-color:var(--line-2);transition:opacity .2s;}
+  .swipe-card.prev{left:18px;}
+  .swipe-card.next{right:18px;}
   .swipe-card .dir{font-family:var(--mono);font-size:12px;color:var(--ink-3);line-height:1;}
   .swipe-card .mini{height:56px;display:flex;align-items:flex-start;justify-content:center;}
   .swipe-card .mini svg{width:40px;height:auto;display:block;}
@@ -683,6 +684,12 @@
   function cycleStyle(dir){ let i=STYLE_IDS.indexOf(state.style); i=(i+dir+STYLE_IDS.length)%STYLE_IDS.length; applyStyle(STYLE_IDS[i]); }
   document.getElementById("cardPrev").onclick=()=>cycleStyle(-1);
   document.getElementById("cardNext").onclick=()=>cycleStyle(1);
+  // let the cards rest during quiet moments; wake on movement or change
+  const swipeCards=[document.getElementById("cardPrev"),document.getElementById("cardNext")];
+  let idleT=null;
+  function wakeCards(){ swipeCards.forEach(c=>c.classList.remove("idle")); clearTimeout(idleT); idleT=setTimeout(()=>swipeCards.forEach(c=>c.classList.add("idle")),4200); }
+  window.addEventListener("pointermove",wakeCards,{passive:true});
+  window.addEventListener("pointerdown",wakeCards,{passive:true});
   function updateSwipeCards(){
     const i=STYLE_IDS.indexOf(state.style);
     const prev=STYLES[STYLE_IDS[(i-1+STYLE_IDS.length)%STYLE_IDS.length]];
@@ -691,6 +698,7 @@
     document.getElementById("capPrev").textContent=prev.name;
     document.getElementById("miniNext").innerHTML=lanternSVG(next.kind,next.pal[0][0]);
     document.getElementById("capNext").textContent=next.name;
+    wakeCards();
   }
   // initial note (no side effects)
   (function(){ const s=STYLES[state.style]; document.getElementById("styleNote").innerHTML=`<span class="note-origin">${s.origin}</span>${s.note}`; })();
