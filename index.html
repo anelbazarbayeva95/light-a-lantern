@@ -70,26 +70,24 @@
   nav{position:fixed;top:22px;left:26px;right:26px;display:flex;justify-content:space-between;align-items:flex-start;z-index:8;}
   nav .links{display:flex;gap:22px;align-items:baseline;flex-wrap:wrap;}
   .wordmark{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);}
+  .wordmark .idx{color:var(--ink-3);letter-spacing:.1em;margin-left:9px;}
   nav .links button{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);background:none;border:none;cursor:pointer;padding:0;transition:color .2s;}
   nav .links button:hover{color:var(--ink);}
-  .configure{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--bg);background:var(--ink);padding:8px 13px;border-radius:4px;cursor:pointer;border:none;transition:opacity .2s;}
-  .configure:hover{opacity:.85;}
-
-  .corner{position:fixed;z-index:6;}
-  .corner.l{left:26px;top:40%;}
-  .corner.r{right:26px;top:26%;}
+  .navright{display:flex;align-items:center;gap:16px;}
+  .menu{width:34px;height:30px;border:1px solid var(--line);border-radius:5px;background:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;transition:border-color .2s;}
+  .menu:hover{border-color:var(--line-2);}
+  .menu span{display:block;width:15px;height:1px;background:var(--ink);}
 
   /* intro hero — fades on first light */
-  #hero{position:fixed;left:26px;bottom:12%;max-width:430px;z-index:6;transition:opacity 1.1s var(--ease),transform 1.1s var(--ease);}
+  #hero{position:fixed;left:28px;bottom:14%;max-width:440px;z-index:6;transition:opacity 1.1s var(--ease),transform 1.1s var(--ease);}
   #hero.gone{opacity:0;transform:translateY(8px);pointer-events:none;}
-  #hero .kicker{margin-bottom:16px;}
-  #hero h1{font-size:clamp(27px,3.7vw,46px);line-height:1.07;font-weight:500;letter-spacing:-0.01em;color:var(--ink);}
-  #hero h1 .em{font-style:italic;color:var(--ink-2);}
-  #hero .rule{display:inline-block;width:42px;height:1px;background:var(--ink);vertical-align:middle;margin:0 10px 8px 2px;}
+  #hero .kicker{margin-bottom:18px;text-transform:none;letter-spacing:.1em;color:var(--ink-3);}
+  #hero h1{font-size:clamp(30px,4vw,50px);line-height:1.08;font-weight:500;letter-spacing:-0.015em;color:var(--ink);}
+  #hero h1 .em{font-style:italic;color:var(--accent);}
 
-  #caption{position:fixed;right:26px;bottom:12%;max-width:212px;z-index:6;transition:opacity 1.1s var(--ease);}
-  #caption.gone{opacity:0;pointer-events:none;}
-  #caption p{font-family:var(--mono);font-size:10px;line-height:1.7;letter-spacing:.05em;color:var(--ink-2);}
+  /* first-touch hint, above the dock */
+  #hint{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:7;transition:opacity 1s var(--ease);color:var(--ink-3);}
+  #hint.gone{opacity:0;pointer-events:none;}
 
   /* minimal dock */
   #dock{position:fixed;left:50%;right:auto;top:auto;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);
@@ -166,24 +164,22 @@
 
   <nav>
     <div class="links">
-      <span class="wordmark">Light a Lantern</span>
-      <button data-open="panelSound">Sound</button>
+      <span class="wordmark">Light a Lantern<span class="idx">№ 01</span></span>
+      <button data-open="panelSound">Sounds</button>
       <button data-open="panelRitual">Ritual</button>
       <button data-open="panelAbout">About</button>
     </div>
-    <button class="configure" data-open="panelConfigure">Configure</button>
+    <div class="navright">
+      <span class="label" id="clockTag">·&nbsp;·&nbsp;·</span>
+      <button class="menu" data-open="panelConfigure" aria-label="Configure"><span></span><span></span><span></span></button>
+    </div>
   </nav>
 
-  <div class="corner l"><span class="tag label">◇&nbsp; Hội An</span></div>
-  <div class="corner r"><span class="tag label" id="clockTag">Night&nbsp; ·&nbsp; crickets</span></div>
-
   <div id="hero">
-    <div class="kicker label">Serendipity — a small, warm light</div>
-    <h1><span class="rule"></span>Light a lantern, <span class="em">breathe,</span><br>and let the evening keep<br>your secrets soft</h1>
+    <div class="kicker label">an evening ritual · Hội An after dark</div>
+    <h1>Kindle a light,<br>sit a while,<br>then <span class="em">let it drift.</span></h1>
   </div>
-  <div id="caption">
-    <p>Silk lanterns from the lanes of Hội An. Tap to kindle each glow, sit with the bell, then release them to the dark.</p>
-  </div>
+  <div id="hint" class="label">tap a lantern to begin</div>
 
   <nav id="dock" aria-label="Controls">
     <button id="btnKindle">Kindle all</button>
@@ -329,8 +325,13 @@
 
   // ---------- lantern rendering (minimal silk barrel) ----------
   let svgSeq=0;
-  function lanternSVG(silk){
-    const id=++svgSeq, cx=60, top=16, bot=150, halfW=42, topH=26, botH=28, mid=(top+bot)/2;
+  const SHAPES=["barrel","barrel","tall","round"];
+  function lanternSVG(silk,shape){
+    const id=++svgSeq, cx=60;
+    let top=16, bot=150, halfW=42, topH=26, botH=28;
+    if(shape==="tall"){ top=12; bot=160; halfW=36; topH=24; botH=26; }
+    if(shape==="round"){ top=20; bot=142; halfW=48; topH=30; botH=32; }
+    const mid=(top+bot)/2;
     const body=`M${cx-topH},${top} Q ${cx-halfW},${mid} ${cx-botH},${bot} L ${cx+botH},${bot} Q ${cx+halfW},${mid} ${cx+topH},${top} Z`;
     let ribs=""; [-1,-0.6,-0.2,0.2,0.6,1].forEach(f=>{ ribs+=`<path d="M${(cx+f*topH).toFixed(1)},${top} Q ${(cx+f*halfW).toFixed(1)},${mid} ${(cx+f*botH).toFixed(1)},${bot}" fill="none" stroke="rgba(20,12,8,0.3)" stroke-width="${Math.abs(f)>0.9?0.9:0.5}"/>`; });
     return `<svg viewBox="0 0 120 216" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMin meet" aria-hidden="true">`
@@ -350,9 +351,9 @@
   }
 
   const layer=document.getElementById("lanterns");
-  const hero=document.getElementById("hero"), caption=document.getElementById("caption");
+  const hero=document.getElementById("hero"), hint=document.getElementById("hint");
   let heroGone=false;
-  function dismissHero(){ if(heroGone)return; heroGone=true; hero.classList.add("gone"); caption.classList.add("gone"); }
+  function dismissHero(){ if(heroGone)return; heroGone=true; hero.classList.add("gone"); hint.classList.add("gone"); }
 
   const rand=(a,b)=>a+Math.random()*(b-a);
 
@@ -384,7 +385,8 @@
     el.style.setProperty("--sa",rand(1,2.2).toFixed(2)+"deg");
     el.dataset.hz=p.hz;
     el.setAttribute("role","button"); el.setAttribute("tabindex","0"); el.setAttribute("aria-label","silk lantern");
-    el.innerHTML=`<div class="cord" style="height:${yTop.toFixed(0)}px"></div><div class="halo"></div>`+lanternSVG(p.silk);
+    const shape=SHAPES[(Math.random()*SHAPES.length)|0];
+    el.innerHTML=`<div class="cord" style="height:${yTop.toFixed(0)}px"></div><div class="halo"></div>`+lanternSVG(p.silk,shape);
     const light=()=>{ if(el.classList.contains("releasing"))return; const was=el.classList.contains("lit"); el.classList.toggle("lit"); if(!was&&state.bell)bell(parseFloat(el.dataset.hz)); dismissHero(); };
     el.addEventListener("click",light);
     el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();light();} });
@@ -490,7 +492,7 @@
   (function(){ const box=document.getElementById("stars"), n=reduceMotion?0:44; let h=""; for(let i=0;i<n;i++)h+=`<div class="star" style="left:${rand(0,100)}%;top:${rand(0,60)}%;--tw:${rand(4,9).toFixed(1)}s;animation-delay:${rand(0,6).toFixed(1)}s"></div>`; box.innerHTML=h; })();
 
   // clock tag
-  (function(){ const t=document.getElementById("clockTag"); const upd=()=>{ const d=new Date(); t.textContent=`Night · ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }; upd(); setInterval(upd,30000); })();
+  (function(){ const t=document.getElementById("clockTag"); const upd=()=>{ const d=new Date(); t.textContent=`Hội An · ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }; upd(); setInterval(upd,30000); })();
 
   buildScene(); updateDensityLabel();
   let rz=null; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(buildScene,250); });
