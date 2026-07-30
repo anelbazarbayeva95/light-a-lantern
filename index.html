@@ -658,7 +658,7 @@
   }
 
   const allL=()=>[...layer.querySelectorAll(".lantern:not(.releasing)")];
-  function kindleAll(){ audio(); allL().filter(e=>!e.classList.contains("lit")).forEach((e,i)=>setTimeout(()=>{e.classList.add("lit"); if(state.bell&&i<10)bell(parseFloat(e.dataset.hz),0,0.5);},i*90)); dismissHero(); }
+  function kindleAll(){ audio(); allL().filter(e=>!e.classList.contains("lit")).forEach((e,i)=>setTimeout(()=>{e.classList.add("lit"); if(state.bell&&i<12)bell(parseFloat(e.dataset.hz),0,0.5);},i*300)); dismissHero(); }
   function dimAll(){ allL().forEach(e=>e.classList.remove("lit")); }
   function release(){
     const lit=allL().filter(e=>e.classList.contains("lit"));
