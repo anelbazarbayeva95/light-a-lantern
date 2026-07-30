@@ -176,6 +176,15 @@
   .panel .note{font-family:var(--serif);font-size:13.5px;line-height:1.62;color:var(--ink-2);border-top:1px solid var(--line);padding-top:15px;margin-top:2px;}
   .panel .note .note-origin{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:7px;}
 
+  /* on-scene culture note — a proverb, surfaced over the night */
+  #sceneNote{position:fixed;right:34px;bottom:calc(102px + env(safe-area-inset-bottom));max-width:320px;z-index:6;text-align:right;
+    opacity:0;transform:translateY(6px);transition:opacity 1s var(--ease),transform 1s var(--ease);pointer-events:none;}
+  #sceneNote.show{opacity:.92;transform:translateY(0);}
+  #sceneNote .pv-native{font-family:var(--serif);font-style:italic;font-size:20px;line-height:1.32;color:var(--ink);}
+  #sceneNote .pv-roman{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-top:7px;}
+  #sceneNote .pv-en{font-family:var(--serif);font-size:14px;line-height:1.45;color:var(--ink-2);margin-top:9px;}
+  @media(max-width:760px){#sceneNote{display:none;}}
+
   /* breathing cue */
   #breathCue{position:fixed;left:50%;top:44%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;
     border:1px solid rgba(233,217,168,0.5);pointer-events:none;opacity:0;display:none;z-index:5;}
@@ -246,6 +255,7 @@
     <span class="dir">›</span><span class="mini" id="miniNext"></span><span class="cap" id="capNext"></span>
   </button>
 
+  <div id="sceneNote" aria-live="polite"></div>
   <div id="timerReadout" aria-live="polite"></div>
   <div id="toast" role="status" aria-live="polite"></div>
 
@@ -422,33 +432,43 @@
   const STYLES = {
     hoian:{kind:"hoian",name:"Hội An",sound:"rain",sky:SKY.navy,moon:{top:"9%",left:"80%",r:82},origin:"Vietnam · Hội An",
       note:"Silk-over-bamboo lanterns in lotus and garlic shapes, glowing along the old riverside town.",
+      proverb:{native:"Gần đèn thì sáng",roman:"",en:"Near the lantern, one grows bright."},
       pal:[["#b8564a",293.66],["#2c7d86",349.23],["#caa23e",392.00],["#4a5aa0",440.00],["#7a4a86",523.25],["#c9b48a",329.63]]},
     chinese:{kind:"round",name:"Dēnglóng",sound:"chimes",sky:SKY.crimson,moon:{top:"11%",left:"7%",r:76},origin:"China · Dēnglóng 灯笼",
       note:"Round silk-and-bamboo lanterns, red with gold tassels — symbols of luck and reunion, lit for the Lantern Festival.",
+      proverb:{native:"一燈能除千年暗",roman:"Yī dēng chú qiān nián àn",en:"One lamp dispels a thousand years of dark."},
       pal:[["#c0392b",261.63],["#a81f1f",311.13],["#d4452f",349.23],["#b22b26",392.00],["#cf5a3a",440.00],["#9e2b25",523.25]]},
     chochin:{kind:"chochin",name:"Chōchin",sound:"night",sky:SKY.indigo,moon:{top:"6%",left:"45%",r:70},origin:"Japan · Chōchin 提灯",
       note:"Collapsible bamboo-and-washi lanterns with horizontal ribs, hung outside shrines and restaurants.",
+      proverb:{native:"一期一会",roman:"Ichigo ichie",en:"One time, one meeting."},
       pal:[["#e6ddcb",329.63],["#d8cfc0",392.00],["#c0392b",261.63],["#ded6c4",440.00],["#cf5a3a",311.13],["#efe7d6",523.25]]},
     andon:{kind:"andon",name:"Andon",sound:"drone",sky:SKY.amber,moon:{top:"17%",left:"82%",r:66},origin:"Japan · Andon 行灯",
       note:"A square wooden-framed paper lamp for quiet indoor light — more architectural than the chōchin.",
+      proverb:{native:"灯台下暗し",roman:"Tōdai moto kurashi",en:"It is dark at the foot of the lamp."},
       pal:[["#e0c48a",261.63],["#d8b877",311.13],["#e6cf9a",349.23],["#d0aa66",392.00],["#e8d4a2",440.00]]},
     korean:{kind:"korean",name:"Korean",sound:"chimes",sky:SKY.royal,moon:{top:"8%",left:"12%",r:88},origin:"Korea · Cheongsachorong 청사초롱",
       note:"A wedding lantern split into blue and red — the harmony of yin and yang.",
+      proverb:{native:"등잔 밑이 어둡다",roman:"Deungjan mit-i eodupda",en:"The dark lies just beneath the lamp."},
       pal:[["#8a3b6a",329.63],["#7a3b7a",392.00],["#8a3b5a",440.00],["#6a3b8a",493.88]]},
     kandil:{kind:"kandil",name:"Kandil",sound:"chimes",sky:SKY.violet,moon:{top:"6%",left:"76%",r:72},origin:"India · Akash Kandil",
       note:"A bright geometric star hung outside homes for Diwali, the festival of lights.",
+      proverb:{native:"तमसो मा ज्योतिर्गमय",roman:"Tamaso mā jyotir gamaya",en:"Lead me from darkness to light."},
       pal:[["#e08a1e",293.66],["#d4462b",349.23],["#e6b422",392.00],["#c0329a",466.16],["#e07a1e",523.25]]},
     khomloi:{kind:"khomloi",name:"Khom Loi",sound:"night",sky:SKY.teal,moon:{top:"13%",left:"38%",r:96},origin:"Thailand · Khom Loi",
       note:"Paper sky-lanterns released together at Yi Peng, carrying wishes and misfortune away into the night.",
+      proverb:{native:"ลอยเคราะห์ลอยโศก",roman:"Loi khro loi sok",en:"Float away misfortune, float away sorrow."},
       pal:[["#f0d9a0",349.23],["#ecca85",392.00],["#f2e0b0",440.00],["#e8b96a",293.66]]},
     moroccan:{kind:"moroccan",name:"Moroccan",sound:"drone",sky:SKY.warm,moon:{top:"10%",left:"6%",r:70},origin:"Morocco · Pierced metal",
       note:"Pierced lanterns casting lace-like patterns of light, reimagined here in warm paper.",
+      proverb:{native:"شمعة تضيء خير من لعن الظلام",roman:"Shamʿa tuḍīʾ khayr min laʿn aẓ-ẓalām",en:"A candle's light beats cursing the dark."},
       pal:[["#b8862b",293.66],["#8a3f2a",349.23],["#2f6f6a",392.00],["#7a3f86",466.16],["#b8562b",523.25]]},
     parol:{kind:"parol",name:"Parol",sound:"chimes",sky:SKY.pine,moon:{top:"7%",left:"14%",r:74},origin:"Philippines · Parol",
       note:"A five-pointed bamboo-and-paper star with trailing tails, hung for Christmas as the Star of Bethlehem.",
+      proverb:{native:"Ang pag-asa ay ilaw sa dilim",roman:"",en:"Hope is a light in the darkness."},
       pal:[["#c62828",293.66],["#2e7d4f",349.23],["#e6b422",392.00],["#2f6fb0",440.00],["#b0338c",523.25]]},
     farolito:{kind:"farolito",name:"Farolito",sound:"night",sky:SKY.sienna,moon:{top:"14%",left:"80%",r:70},origin:"Mexico · Farolito",
       note:"A candle in a folded paper bag, lining pathways and rooftops to light the way during Las Posadas.",
+      proverb:{native:"Una vela enciende otra sin perder nada",roman:"",en:"A candle lights another and loses nothing."},
       pal:[["#d99a4e",261.63],["#c9822f",311.13],["#e0b26a",349.23],["#c26a2c",392.00],["#e8c98a",440.00]]},
   };
   const palOf = id => STYLES[id].pal.map(([silk,hz])=>({silk,hz}));
@@ -714,6 +734,21 @@
   document.getElementById("btnRelease").onclick=release;
   document.getElementById("btnRenew").onclick=()=>{ buildScene(); toast("A new gathering"); };
 
+  // on-scene proverb — cross-fades when the culture changes
+  const sceneNoteEl=document.getElementById("sceneNote");
+  function renderSceneNote(s){
+    const p=s.proverb;
+    sceneNoteEl.innerHTML=`<div class="pv-native">${p.native}</div>`
+      +(p.roman?`<div class="pv-roman">${p.roman}</div>`:"")
+      +`<div class="pv-en">${p.en}</div>`;
+  }
+  function setSceneNote(id){
+    const s=STYLES[id];
+    if(!sceneNoteEl.classList.contains("show")){ renderSceneNote(s); sceneNoteEl.classList.add("show"); return; }
+    sceneNoteEl.classList.remove("show");
+    setTimeout(()=>{ renderSceneNote(s); sceneNoteEl.classList.add("show"); }, reduceMotion?0:480);
+  }
+
   // collection: switch lantern culture (shape + palette + signature sound + note)
   function applyStyle(id){
     const s=STYLES[id]; if(!s)return; audio();
@@ -723,6 +758,7 @@
     setActive("#styleChips","style",id);
     document.querySelectorAll("#moodChips .chip").forEach(c=>c.classList.remove("on"));
     document.getElementById("styleNote").innerHTML=`<span class="note-origin">${s.origin}</span>${s.note}`;
+    setSceneNote(id);
     ["rain","drone","chimes","night"].forEach(nm=>{ toggleSound(nm,nm===s.sound); const chip=document.querySelector(`#soundChips .chip[data-sound="${nm}"]`); if(chip)chip.classList.toggle("on",nm===s.sound); });
     regenStars(); updateSwipeCards(); buildScene(); toast(s.name);
   }
@@ -749,7 +785,7 @@
     wakeCards();
   }
   // initial note (no side effects)
-  (function(){ const s=STYLES[state.style]; document.getElementById("styleNote").innerHTML=`<span class="note-origin">${s.origin}</span>${s.note}`; })();
+  (function(){ const s=STYLES[state.style]; document.getElementById("styleNote").innerHTML=`<span class="note-origin">${s.origin}</span>${s.note}`; setSceneNote(state.style); })();
 
   document.querySelectorAll("#moodChips .chip").forEach(c=>c.onclick=()=>{ state.mood=c.dataset.mood; state.palette=PALETTES[c.dataset.mood]; setActive("#moodChips","mood",state.mood); document.querySelectorAll("#styleChips .chip").forEach(x=>x.classList.remove("on")); buildScene(); });
   const densityEl=document.getElementById("density");
