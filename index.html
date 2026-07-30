@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0710" />
+<meta name="description" content="Light a Lantern — a quiet dark alley of hanging silk lanterns you tap to light, with live synthesized ambient sound for meditation. No dependencies, works offline." />
+<title>Light a Lantern · a meditation for letting go</title>
+<style>
+  :root {
+    --bg-0: #070510;
+    --bg-1: #0d0a1a;
+    --bg-2: #14101f;
+    --ink: #f6ecd8;
+    --ink-dim: #b7ab9a;
+    --ink-faint: #6f6656;
+    --line: rgba(246, 236, 216, 0.12);
+    --panel: rgba(18, 14, 28, 0.86);
+    --glow: #ffb347;
+    --accent: #ffcf7a;
+    --radius: 16px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg-0);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  #scene {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(120% 90% at 50% -10%, #1a1330 0%, transparent 55%),
+      radial-gradient(80% 60% at 50% 120%, #120c22 0%, transparent 60%),
+      linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 70%, #050308 100%);
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  /* soft floating dust / stars */
+  #stars { position: absolute; inset: 0; pointer-events: none; opacity: 0.5; }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0.5;
+    animation: twinkle var(--tw, 6s) ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 0.7; }
+  }
+
+  #lanterns { position: absolute; inset: 0; }
+
+  .lantern {
+    position: absolute;
+    transform-origin: top center;
+    cursor: pointer;
+    will-change: transform;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sway { animation: sway var(--sway-dur, 6s) ease-in-out infinite; animation-delay: var(--sway-delay, 0s); }
+  @keyframes sway {
+    0%, 100% { transform: rotate(var(--sway-a, 3deg)); }
+    50% { transform: rotate(calc(var(--sway-a, 3deg) * -1)); }
+  }
+
+  .cord {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: var(--cord, 60px);
+    background: linear-gradient(180deg, rgba(246,236,216,0.28), rgba(246,236,216,0.05));
+    transform: translateX(-50%);
+  }
+
+  .body {
+    position: absolute;
+    top: var(--cord, 60px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: var(--w, 46px);
+    height: var(--h, 62px);
+    border-radius: 50% 50% 46% 46% / 40% 40% 60% 60%;
+    background:
+      radial-gradient(60% 55% at 50% 42%, rgba(255,255,255,0.10), transparent 60%),
+      var(--silk, #7a2f3a);
+    box-shadow: inset 0 -8px 14px rgba(0,0,0,0.35), inset 0 6px 10px rgba(255,255,255,0.06);
+    transition: box-shadow 0.6s var(--ease), filter 0.6s var(--ease), background 0.5s;
+    position: relative;
+  }
+  /* ribbing */
+  .body::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: repeating-linear-gradient(90deg, rgba(0,0,0,0.10) 0 6px, rgba(255,255,255,0.04) 6px 12px);
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+  }
+  /* top & bottom caps */
+  .cap {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(var(--w, 46px) * 0.5);
+    height: 6px;
+    background: #c9a24a;
+    border-radius: 3px;
+    box-shadow: 0 0 4px rgba(0,0,0,0.4);
+  }
+  .cap.top { top: calc(var(--cord, 60px) - 3px); }
+  .cap.bot { top: calc(var(--cord, 60px) + var(--h, 62px) - 3px); }
+  /* tassel */
+  .tassel {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--cord, 60px) + var(--h, 62px));
+    transform: translateX(-50%);
+    width: 2px;
+    height: calc(var(--w, 46px) * 0.42);
+    background: linear-gradient(180deg, #c9a24a, #8a6d2c);
+    border-radius: 2px;
+  }
+
+  .lantern.lit .body {
+    box-shadow:
+      inset 0 -6px 14px rgba(0,0,0,0.18),
+      inset 0 6px 12px rgba(255,255,255,0.22),
+      0 0 26px 6px var(--halo, rgba(255,180,90,0.55)),
+      0 0 70px 18px var(--halo-soft, rgba(255,160,70,0.28));
+    filter: saturate(1.25) brightness(1.28);
+  }
+  .lantern.lit .body::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 40%; height: 40%;
+    transform: translate(-50%,-50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,244,214,0.9), transparent 70%);
+    animation: flicker 2.4s ease-in-out infinite;
+  }
+  @keyframes flicker {
+    0%, 100% { opacity: 0.75; transform: translate(-50%,-50%) scale(1); }
+    45% { opacity: 1; transform: translate(-50%,-51%) scale(1.06); }
+    70% { opacity: 0.82; transform: translate(-51%,-50%) scale(0.97); }
+  }
+
+  /* release: drift up and fade */
+  .lantern.releasing {
+    animation: release 6s var(--ease) forwards;
+    pointer-events: none;
+  }
+  @keyframes release {
+    0% { transform: translateY(0) rotate(0); opacity: 1; }
+    100% { transform: translateY(-120vh) rotate(6deg); opacity: 0; }
+  }
+
+  /* breathing pulse applied to whole cluster */
+  #lanterns.breathing .lantern.lit .body {
+    animation: breathe var(--breath-dur, 8s) ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { filter: saturate(1.15) brightness(1.05); }
+    50% { filter: saturate(1.35) brightness(1.5); }
+  }
+
+  /* center breathing cue ring */
+  #breathCue {
+    position: fixed;
+    left: 50%; top: 46%;
+    width: 140px; height: 140px;
+    margin: -70px 0 0 -70px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,207,122,0.5);
+    box-shadow: 0 0 40px rgba(255,180,90,0.25) inset;
+    pointer-events: none;
+    opacity: 0;
+    display: none;
+    z-index: 4;
+  }
+  #breathCue.active { display: block; opacity: 1; animation: cue var(--breath-dur, 8s) ease-in-out infinite; }
+  #breathCue .label {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-dim);
+    animation: cueText var(--breath-dur, 8s) ease-in-out infinite;
+  }
+  @keyframes cue {
+    0% { transform: scale(0.6); opacity: 0.35; }
+    50% { transform: scale(1.15); opacity: 0.9; }
+    100% { transform: scale(0.6); opacity: 0.35; }
+  }
+  @keyframes cueText { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  /* ---------- UI chrome ---------- */
+  header.title {
+    position: fixed; top: 0; left: 0; right: 0;
+    padding: 18px 20px calc(18px + env(safe-area-inset-top));
+    text-align: center;
+    pointer-events: none;
+    z-index: 5;
+    background: linear-gradient(180deg, rgba(7,5,16,0.55), transparent);
+  }
+  header.title h1 {
+    margin: 0; font-size: 15px; font-weight: 600;
+    letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--ink); opacity: 0.85;
+  }
+  header.title p { margin: 4px 0 0; font-size: 11.5px; color: var(--ink-faint); letter-spacing: 0.08em; }
+
+  #dock {
+    position: fixed;
+    left: 50%; bottom: calc(14px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    max-width: min(680px, 94vw);
+    padding: 8px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: 6;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  .btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.03);
+    color: var(--ink);
+    font: inherit; font-size: 12.5px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.1s;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,207,122,0.4); }
+  .btn:active { transform: scale(0.96); }
+  .btn.primary { background: linear-gradient(180deg, rgba(255,180,90,0.28), rgba(255,140,60,0.16)); border-color: rgba(255,180,90,0.45); }
+  .btn.icon { padding: 9px 12px; }
+
+  /* side panels */
+  .panel {
+    position: fixed;
+    top: 50%; right: 14px;
+    transform: translateY(-50%) translateX(120%);
+    width: min(320px, 92vw);
+    max-height: 82vh;
+    overflow-y: auto;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 7;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    transition: transform 0.45s var(--ease), opacity 0.35s;
+    opacity: 0;
+  }
+  .panel.open { transform: translateY(-50%) translateX(0); opacity: 1; }
+  .panel h2 { margin: 0 0 4px; font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+  .panel .sub { margin: 0 0 16px; font-size: 11.5px; color: var(--ink-faint); }
+  .panel .close {
+    position: absolute; top: 12px; right: 12px;
+    background: none; border: none; color: var(--ink-dim);
+    font-size: 20px; cursor: pointer; line-height: 1;
+  }
+
+  .field { margin-bottom: 18px; }
+  .field > label { display: block; font-size: 11.5px; letter-spacing: 0.06em; color: var(--ink-dim); margin-bottom: 8px; text-transform: uppercase; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.03);
+    color: var(--ink-dim);
+    font: inherit; font-size: 12px;
+    padding: 7px 11px; border-radius: 999px; cursor: pointer;
+    transition: all 0.18s;
+  }
+  .chip:hover { color: var(--ink); }
+  .chip.on { background: rgba(255,207,122,0.18); border-color: rgba(255,207,122,0.55); color: var(--accent); }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    background: transparent;
+  }
+
+  .toggle { display: flex; align-items: center; justify-content: space-between; }
+  .toggle span { font-size: 12.5px; color: var(--ink); }
+  .switch { position: relative; width: 42px; height: 24px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0; cursor: pointer;
+    background: rgba(255,255,255,0.12); border-radius: 999px; transition: 0.25s;
+  }
+  .slider::before {
+    content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px;
+    background: var(--ink); border-radius: 50%; transition: 0.25s;
+  }
+  .switch input:checked + .slider { background: rgba(255,180,90,0.5); }
+  .switch input:checked + .slider::before { transform: translateX(18px); background: var(--accent); }
+
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* timer readout */
+  #timerReadout {
+    position: fixed;
+    top: calc(66px + env(safe-area-inset-top)); left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px; letter-spacing: 0.14em; color: var(--accent);
+    z-index: 5; pointer-events: none;
+    opacity: 0; transition: opacity 0.4s;
+    font-variant-numeric: tabular-nums;
+  }
+  #timerReadout.show { opacity: 0.9; }
+
+  /* toast */
+  #toast {
+    position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(10px);
+    background: rgba(20,16,32,0.92); border: 1px solid var(--line);
+    color: var(--ink); font-size: 12.5px; padding: 8px 16px; border-radius: 999px;
+    z-index: 8; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    letter-spacing: 0.04em;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* first-touch hint */
+  #hint {
+    position: fixed; left: 50%; top: 50%;
+    transform: translate(-50%,-50%);
+    text-align: center; z-index: 3; pointer-events: none;
+    transition: opacity 0.8s;
+  }
+  #hint .pulse {
+    width: 54px; height: 54px; margin: 0 auto 14px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,207,122,0.5);
+    animation: hintpulse 2.6s ease-out infinite;
+  }
+  @keyframes hintpulse {
+    0% { box-shadow: 0 0 0 0 rgba(255,207,122,0.4); transform: scale(1); }
+    100% { box-shadow: 0 0 0 26px rgba(255,207,122,0); transform: scale(1.1); }
+  }
+  #hint p { color: var(--ink-dim); font-size: 13px; letter-spacing: 0.12em; margin: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sway, .star, #breathCue.active, #hint .pulse,
+    #lanterns.breathing .lantern.lit .body, .lantern.lit .body::after,
+    #breathCue .label { animation: none !important; }
+    .lantern.releasing { animation: releaseReduced 2s ease forwards; }
+    @keyframes releaseReduced { to { opacity: 0; } }
+  }
+
+  @media (max-width: 520px) {
+    .btn { font-size: 11.5px; padding: 8px 11px; }
+    header.title h1 { font-size: 13px; letter-spacing: 0.24em; }
+  }
+</style>
+</head>
+<body>
+  <main id="scene">
+    <div id="stars" aria-hidden="true"></div>
+    <div id="lanterns" role="group" aria-label="Hanging lanterns. Tap one to light it."></div>
+    <div id="breathCue" aria-hidden="true"><span class="label">breathe</span></div>
+
+    <div id="hint">
+      <div class="pulse"></div>
+      <p>tap a lantern to light it</p>
+    </div>
+  </main>
+
+  <header class="title">
+    <h1>Light a Lantern</h1>
+    <p>a small ritual for letting go · inspired by Hội An</p>
+  </header>
+
+  <div id="timerReadout" aria-live="polite"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Customize panel -->
+  <aside id="panelCustomize" class="panel" aria-label="Customize">
+    <button class="close" data-close aria-label="Close">×</button>
+    <h2>Customize</h2>
+    <p class="sub">Shape the alley to your liking.</p>
+
+    <div class="field">
+      <label>Color mood</label>
+      <div class="chips" id="moodChips">
+        <button class="chip on" data-mood="festival">Festival</button>
+        <button class="chip" data-mood="warm">Warm</button>
+        <button class="chip" data-mood="cool">Cool</button>
+        <button class="chip" data-mood="moonlight">Moonlight</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Lantern density · <span id="densityVal">medium</span></label>
+      <input type="range" id="density" min="14" max="70" value="34" step="2" />
+    </div>
+
+    <div class="field toggle">
+      <span>Gentle sway</span>
+      <label class="switch"><input type="checkbox" id="swayToggle" checked><span class="slider"></span></label>
+    </div>
+
+    <div class="field toggle">
+      <span>Bell on tap</span>
+      <label class="switch"><input type="checkbox" id="bellToggle" checked><span class="slider"></span></label>
+    </div>
+
+    <div class="field">
+      <label>Master volume · <span id="volVal">60%</span></label>
+      <input type="range" id="volume" min="0" max="100" value="60" />
+    </div>
+  </aside>
+
+  <!-- Ambience panel -->
+  <aside id="panelSound" class="panel" aria-label="Ambience and breathing">
+    <button class="close" data-close aria-label="Close">×</button>
+    <h2>Ambience</h2>
+    <p class="sub">Layer any of these. All sound is synthesized live.</p>
+
+    <div class="field">
+      <label>Soundscapes</label>
+      <div class="chips" id="soundChips">
+        <button class="chip" data-sound="rain">Rain</button>
+        <button class="chip" data-sound="drone">Temple drone</button>
+        <button class="chip" data-sound="chimes">Chimes</button>
+        <button class="chip" data-sound="night">Night · crickets</button>
+      </div>
+    </div>
+
+    <h2 style="margin-top:22px">Breathing</h2>
+    <p class="sub">A gentle guide to slow down.</p>
+    <div class="field">
+      <label>Pattern</label>
+      <div class="chips" id="breathChips">
+        <button class="chip" data-breath="off">Off</button>
+        <button class="chip" data-breath="box">Box · 4·4·4·4</button>
+        <button class="chip" data-breath="478">4·7·8</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Pace · <span id="paceVal">calm</span></label>
+      <input type="range" id="pace" min="0" max="3" value="1" step="1" />
+    </div>
+
+    <h2 style="margin-top:22px">Session timer</h2>
+    <p class="sub">Closes with a resonant gong.</p>
+    <div class="field">
+      <div class="chips" id="timerChips">
+        <button class="chip" data-min="0">Off</button>
+        <button class="chip" data-min="5">5</button>
+        <button class="chip" data-min="10">10</button>
+        <button class="chip" data-min="20">20</button>
+        <button class="chip" data-min="45">45</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Dock -->
+  <nav id="dock" aria-label="Controls">
+    <button class="btn primary" id="btnKindle">Kindle all</button>
+    <button class="btn" id="btnDim">Dim all</button>
+    <button class="btn" id="btnRelease">Release</button>
+    <button class="btn" id="btnPresets">Moods</button>
+    <button class="btn icon" id="btnSound" aria-label="Ambience">♪</button>
+    <button class="btn icon" id="btnCustomize" aria-label="Customize">⚙</button>
+  </nav>
+
+  <!-- Presets popover reuses toast-style buttons via dock -->
+  <aside id="panelPresets" class="panel" aria-label="Mood presets" style="top:auto;bottom:calc(78px + env(safe-area-inset-bottom));right:50%;transform:translateX(50%) translateY(120%);">
+    <button class="close" data-close aria-label="Close">×</button>
+    <h2>Moods</h2>
+    <p class="sub">One tap sets colour, density, breath &amp; sound.</p>
+    <div class="row" id="presetChips" style="gap:8px">
+      <button class="chip" data-preset="focus">Focus</button>
+      <button class="chip" data-preset="unwind">Unwind</button>
+      <button class="chip" data-preset="sleep">Sleep</button>
+      <button class="chip" data-preset="festival">Festival</button>
+    </div>
+  </aside>
+
+<script>
+(() => {
+  "use strict";
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- palettes ----------
+  // each colour: silk fill, halo, and a musical pitch (Hz) for its bell
+  const PALETTES = {
+    festival: [
+      { silk:"#c62f45", halo:"rgba(255,90,110,0.6)",  hz:261.63 }, // C
+      { silk:"#e0862a", halo:"rgba(255,170,70,0.6)",  hz:293.66 }, // D
+      { silk:"#e6c02a", halo:"rgba(255,225,90,0.6)",  hz:329.63 }, // E
+      { silk:"#2f9e6b", halo:"rgba(90,230,160,0.55)", hz:392.00 }, // G
+      { silk:"#2f6fbf", halo:"rgba(90,160,255,0.55)", hz:440.00 }, // A
+      { silk:"#8e44ad", halo:"rgba(190,110,240,0.55)",hz:523.25 }, // C
+    ],
+    warm: [
+      { silk:"#a8322f", halo:"rgba(255,110,80,0.6)", hz:261.63 },
+      { silk:"#c15a24", halo:"rgba(255,150,70,0.6)", hz:311.13 },
+      { silk:"#d98324", halo:"rgba(255,180,80,0.6)", hz:349.23 },
+      { silk:"#b8442f", halo:"rgba(255,120,70,0.6)", hz:392.00 },
+      { silk:"#e0a13a", halo:"rgba(255,210,110,0.6)",hz:466.16 },
+      { silk:"#8f3d2a", halo:"rgba(255,120,80,0.55)",hz:523.25 },
+    ],
+    cool: [
+      { silk:"#2f5fb0", halo:"rgba(100,160,255,0.55)", hz:261.63 },
+      { silk:"#2f86a8", halo:"rgba(90,200,230,0.55)",  hz:311.13 },
+      { silk:"#3aa79a", halo:"rgba(100,230,210,0.55)", hz:349.23 },
+      { silk:"#5a54b8", halo:"rgba(140,130,240,0.55)", hz:392.00 },
+      { silk:"#7048a8", halo:"rgba(170,120,230,0.55)", hz:466.16 },
+      { silk:"#2f6f8f", halo:"rgba(90,180,210,0.55)",  hz:523.25 },
+    ],
+    moonlight: [
+      { silk:"#8a93b8", halo:"rgba(200,215,255,0.5)", hz:329.63 },
+      { silk:"#9aa0c0", halo:"rgba(210,220,255,0.5)", hz:392.00 },
+      { silk:"#7f88ad", halo:"rgba(190,205,250,0.5)", hz:440.00 },
+      { silk:"#adb4d0", halo:"rgba(220,228,255,0.5)", hz:493.88 },
+      { silk:"#727aa0", halo:"rgba(180,195,245,0.5)", hz:587.33 },
+      { silk:"#c0c6de", halo:"rgba(230,236,255,0.55)",hz:659.25 },
+    ],
+  };
+
+  const state = {
+    mood: "festival",
+    density: 34,
+    sway: !reduceMotion,
+    bell: true,
+    volume: 0.6,
+    breath: "off",
+    pace: 1,      // 0..3
+    sounds: new Set(),
+    timerId: null,
+    timerEnd: 0,
+    tickId: null,
+  };
+
+  // ---------- Web Audio ----------
+  let AC = null, master = null;
+  const soundNodes = {}; // name -> {stop()}
+
+  function audio() {
+    if (!AC) {
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      master = AC.createGain();
+      master.gain.value = state.volume;
+      master.connect(AC.destination);
+    }
+    if (AC.state === "suspended") AC.resume();
+    return AC;
+  }
+
+  function setVolume(v) {
+    state.volume = v;
+    if (master) master.gain.setTargetAtTime(v, AC.currentTime, 0.05);
+  }
+
+  // a struck bell / singing-bowl tone
+  function bell(hz, when = 0, gainScale = 1) {
+    const ac = audio();
+    const t = ac.currentTime + when;
+    const g = ac.createGain();
+    g.connect(master);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.4 * gainScale, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 3.4);
+    // partials for a bell-like timbre
+    const partials = [[1, 1], [2.01, 0.5], [2.76, 0.28], [4.07, 0.16], [5.4, 0.08]];
+    partials.forEach(([mult, amp]) => {
+      const o = ac.createOscillator();
+      o.type = "sine";
+      o.frequency.value = hz * mult;
+      const pg = ac.createGain();
+      pg.gain.value = amp;
+      o.connect(pg); pg.connect(g);
+      o.start(t); o.stop(t + 3.6);
+    });
+  }
+
+  function gong(hz = 70) {
+    const ac = audio();
+    const t = ac.currentTime;
+    const g = ac.createGain();
+    g.connect(master);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.6, t + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 8);
+    [[1,1],[1.48,0.5],[2.1,0.34],[2.9,0.2],[3.7,0.12]].forEach(([m,a]) => {
+      const o = ac.createOscillator();
+      o.type = "sine"; o.frequency.value = hz*m;
+      const pg = ac.createGain(); pg.gain.value = a;
+      // slight downward glide
+      o.frequency.exponentialRampToValueAtTime(hz*m*0.94, t + 6);
+      o.connect(pg); pg.connect(g);
+      o.start(t); o.stop(t + 8.2);
+    });
+  }
+
+  // ---- ambient soundscapes ----
+  function noiseBuffer() {
+    const ac = audio();
+    const len = ac.sampleRate * 2;
+    const buf = ac.createBuffer(1, len, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    return buf;
+  }
+
+  const builders = {
+    rain() {
+      const ac = audio();
+      const src = ac.createBufferSource();
+      src.buffer = noiseBuffer(); src.loop = true;
+      const hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 500;
+      const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 6500;
+      const g = ac.createGain(); g.gain.value = 0; g.gain.setTargetAtTime(0.18, ac.currentTime, 1.2);
+      src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(master);
+      src.start();
+      return { stop() { g.gain.setTargetAtTime(0, ac.currentTime, 0.6); setTimeout(() => src.stop(), 900); } };
+    },
+    drone() {
+      const ac = audio();
+      const g = ac.createGain(); g.gain.value = 0; g.gain.setTargetAtTime(0.14, ac.currentTime, 2); g.connect(master);
+      const freqs = [55, 82.4, 110, 164.8];
+      const oscs = freqs.map((f, i) => {
+        const o = ac.createOscillator(); o.type = i % 2 ? "sine" : "triangle"; o.frequency.value = f;
+        const lfo = ac.createOscillator(); lfo.frequency.value = 0.05 + i * 0.02;
+        const lg = ac.createGain(); lg.gain.value = f * 0.01;
+        lfo.connect(lg); lg.connect(o.frequency);
+        const og = ac.createGain(); og.gain.value = 0.25 / (i + 1);
+        o.connect(og); og.connect(g);
+        o.start(); lfo.start();
+        return [o, lfo];
+      });
+      return { stop() { g.gain.setTargetAtTime(0, ac.currentTime, 1); setTimeout(() => oscs.flat().forEach(o => o.stop()), 1400); } };
+    },
+    chimes() {
+      const ac = audio();
+      const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+      let alive = true;
+      const g = ac.createGain(); g.gain.value = 0.5; g.connect(master);
+      function ring() {
+        if (!alive) return;
+        const hz = scale[(Math.random() * scale.length) | 0];
+        const t = ac.currentTime;
+        const o = ac.createOscillator(); o.type = "sine"; o.frequency.value = hz;
+        const og = ac.createGain(); og.gain.setValueAtTime(0.0001, t);
+        og.gain.exponentialRampToValueAtTime(0.14, t + 0.01);
+        og.gain.exponentialRampToValueAtTime(0.0001, t + 2.6);
+        o.connect(og); og.connect(g); o.start(t); o.stop(t + 2.8);
+        setTimeout(ring, 900 + Math.random() * 2600);
+      }
+      ring();
+      return { stop() { alive = false; g.gain.setTargetAtTime(0, ac.currentTime, 0.6); } };
+    },
+    night() {
+      const ac = audio();
+      const g = ac.createGain(); g.gain.value = 0; g.gain.setTargetAtTime(0.12, ac.currentTime, 1.5); g.connect(master);
+      // low pad
+      const pad = ac.createOscillator(); pad.type = "sine"; pad.frequency.value = 98;
+      const padG = ac.createGain(); padG.gain.value = 0.18; pad.connect(padG); padG.connect(g); pad.start();
+      // crickets: fast amplitude-modulated high tone, chirping in bursts
+      let alive = true;
+      function chirp() {
+        if (!alive) return;
+        const t = ac.currentTime;
+        const o = ac.createOscillator(); o.type = "square"; o.frequency.value = 4300 + Math.random() * 500;
+        const mod = ac.createOscillator(); mod.type = "square"; mod.frequency.value = 42;
+        const mg = ac.createGain(); mg.gain.value = 0.5;
+        const cg = ac.createGain(); cg.gain.value = 0;
+        mod.connect(mg); mg.connect(cg.gain);
+        o.connect(cg); cg.connect(g);
+        const dur = 0.3 + Math.random() * 0.5;
+        cg.gain.setValueAtTime(0.0001, t);
+        cg.gain.setTargetAtTime(0.05, t, 0.05);
+        cg.gain.setTargetAtTime(0, t + dur, 0.08);
+        o.start(t); mod.start(t); o.stop(t + dur + 0.3); mod.stop(t + dur + 0.3);
+        setTimeout(chirp, 700 + Math.random() * 2400);
+      }
+      chirp();
+      return { stop() { alive = false; g.gain.setTargetAtTime(0, ac.currentTime, 0.8); setTimeout(() => pad.stop(), 1200); } };
+    },
+  };
+
+  function toggleSound(name, on) {
+    if (on) {
+      if (!soundNodes[name]) soundNodes[name] = builders[name]();
+      state.sounds.add(name);
+    } else {
+      if (soundNodes[name]) { soundNodes[name].stop(); delete soundNodes[name]; }
+      state.sounds.delete(name);
+    }
+  }
+
+  // ---------- lantern cluster ----------
+  const layer = document.getElementById("lanterns");
+  const hint = document.getElementById("hint");
+  let hintDismissed = false;
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  function buildCluster() {
+    layer.innerHTML = "";
+    const pal = PALETTES[state.mood];
+    const W = window.innerWidth, H = window.innerHeight;
+    const count = state.density;
+    // organic scatter across an irregular grid, denser toward the top
+    const cols = Math.max(3, Math.round(Math.sqrt(count * W / H)));
+    const rows = Math.ceil(count / cols);
+    let made = 0;
+    for (let r = 0; r < rows && made < count; r++) {
+      for (let c = 0; c < cols && made < count; c++) {
+        // skip some cells for organic gaps
+        if (Math.random() < 0.12) continue;
+        const cellW = W / cols, cellH = (H * 0.62) / rows;
+        const x = c * cellW + rand(0.15, 0.85) * cellW;
+        const y = r * cellH + rand(0.0, 0.5) * cellH + 24;
+        made++;
+        makeLantern(x, y, pal, r);
+      }
+    }
+    // ensure minimum
+    while (made < Math.min(count, 8)) {
+      makeLantern(rand(0.1, 0.9) * W, rand(24, H * 0.5), pal, 0);
+      made++;
+    }
+  }
+
+  function makeLantern(x, y, pal, row) {
+    const p = pal[(Math.random() * pal.length) | 0];
+    const scale = rand(0.72, 1.15);
+    const w = 46 * scale, h = 62 * scale;
+    const cord = Math.max(20, y * rand(0.35, 0.7));
+    const el = document.createElement("div");
+    el.className = "lantern" + (state.sway ? " sway" : "");
+    el.style.left = x + "px";
+    el.style.top = "0px";
+    el.style.setProperty("--w", w.toFixed(1) + "px");
+    el.style.setProperty("--h", h.toFixed(1) + "px");
+    el.style.setProperty("--cord", cord.toFixed(0) + "px");
+    el.style.setProperty("--silk", p.silk);
+    el.style.setProperty("--halo", p.halo);
+    el.style.setProperty("--halo-soft", p.halo.replace(/0?\.\d+\)/, "0.28)"));
+    el.style.setProperty("--sway-dur", rand(4.5, 8.5).toFixed(2) + "s");
+    el.style.setProperty("--sway-delay", rand(0, 4).toFixed(2) + "s");
+    el.style.setProperty("--sway-a", rand(1.6, 3.6).toFixed(2) + "deg");
+    el.dataset.hz = p.hz;
+    el.setAttribute("role", "button");
+    el.setAttribute("tabindex", "0");
+    el.setAttribute("aria-label", "lantern");
+
+    el.innerHTML =
+      '<div class="cord"></div>' +
+      '<div class="cap top"></div>' +
+      '<div class="body"></div>' +
+      '<div class="cap bot"></div>' +
+      '<div class="tassel"></div>';
+
+    const light = () => {
+      if (el.classList.contains("releasing")) return;
+      const wasLit = el.classList.contains("lit");
+      el.classList.toggle("lit");
+      if (!wasLit && state.bell) bell(parseFloat(el.dataset.hz));
+      dismissHint();
+    };
+    el.addEventListener("click", light);
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); light(); } });
+
+    layer.appendChild(el);
+  }
+
+  function dismissHint() {
+    if (hintDismissed) return;
+    hintDismissed = true;
+    hint.style.opacity = "0";
+    setTimeout(() => { hint.style.display = "none"; }, 800);
+  }
+
+  // ---------- global lantern actions ----------
+  function allLanterns() { return [...layer.querySelectorAll(".lantern:not(.releasing)")]; }
+
+  function kindleAll() {
+    audio();
+    const els = allLanterns().filter(e => !e.classList.contains("lit"));
+    els.forEach((e, i) => {
+      setTimeout(() => {
+        e.classList.add("lit");
+        if (state.bell && i < 12) bell(parseFloat(e.dataset.hz), 0, 0.5);
+      }, i * 45);
+    });
+    dismissHint();
+  }
+
+  function dimAll() {
+    allLanterns().forEach(e => e.classList.remove("lit"));
+  }
+
+  function release() {
+    const lit = allLanterns().filter(e => e.classList.contains("lit"));
+    if (!lit.length) { toast("Light a few lanterns first, then release."); return; }
+    if (state.bell) bell(196, 0, 0.7);
+    lit.forEach((e, i) => {
+      setTimeout(() => {
+        e.style.setProperty("--x", e.style.left);
+        e.classList.add("releasing");
+        setTimeout(() => e.remove(), 6200);
+      }, i * 90);
+    });
+    toast("Released. Let it drift.");
+    // gently refill after they've floated away
+    setTimeout(() => { if (allLanterns().length < state.density * 0.4) buildCluster(); }, 6800);
+  }
+
+  // ---------- breathing ----------
+  const cue = document.getElementById("breathCue");
+  const cueLabel = cue.querySelector(".label");
+  const PACE = ["quick", "calm", "slow", "deep"];
+  // base full-cycle durations (seconds) per pace index
+  const BOX_CYCLE = [8, 12, 16, 22];   // 4 phases equal
+  const C478_CYCLE = [12, 15.2, 19, 24];
+
+  let breathTextTimer = null;
+  function applyBreathing() {
+    clearInterval(breathTextTimer);
+    layer.classList.remove("breathing");
+    cue.classList.remove("active");
+    if (state.breath === "off") return;
+
+    const cycle = (state.breath === "box" ? BOX_CYCLE : C478_CYCLE)[state.pace];
+    document.documentElement.style.setProperty("--breath-dur", cycle + "s");
+    layer.classList.add("breathing");
+    cue.classList.add("active");
+
+    // phase labels
+    const phases = state.breath === "box"
+      ? [["breathe in", 0.25], ["hold", 0.25], ["breathe out", 0.25], ["hold", 0.25]]
+      : [["breathe in", 4/19], ["hold", 7/19], ["breathe out", 8/19]];
+    let idx = 0;
+    const step = () => {
+      cueLabel.textContent = phases[idx][0];
+      const dur = phases[idx][1] * cycle * 1000;
+      idx = (idx + 1) % phases.length;
+      breathTextTimer = setTimeout(step, dur);
+    };
+    step();
+  }
+
+  // ---------- timer ----------
+  const timerReadout = document.getElementById("timerReadout");
+  function startTimer(min) {
+    clearTimeout(state.timerId);
+    clearInterval(state.tickId);
+    if (!min) {
+      timerReadout.classList.remove("show");
+      return;
+    }
+    audio();
+    state.timerEnd = Date.now() + min * 60000;
+    timerReadout.classList.add("show");
+    const tick = () => {
+      const left = Math.max(0, state.timerEnd - Date.now());
+      const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
+      timerReadout.textContent = `${m}:${String(s).padStart(2, "0")}`;
+    };
+    tick();
+    state.tickId = setInterval(tick, 1000);
+    state.timerId = setTimeout(endSession, min * 60000);
+  }
+
+  function endSession() {
+    clearInterval(state.tickId);
+    timerReadout.classList.remove("show");
+    // fade sounds
+    [...state.sounds].forEach(n => toggleSound(n, false));
+    document.querySelectorAll('#soundChips .chip.on').forEach(c => c.classList.remove("on"));
+    gong();
+    // dim slowly
+    const els = allLanterns().filter(e => e.classList.contains("lit"));
+    els.forEach((e, i) => setTimeout(() => e.classList.remove("lit"), i * 120));
+    toast("Session complete. Rest well.");
+  }
+
+  // ---------- presets ----------
+  const PRESETS = {
+    focus:    { mood:"cool",      density:22, breath:"box", pace:2, sounds:["drone"] },
+    unwind:   { mood:"warm",      density:34, breath:"box", pace:1, sounds:["rain"] },
+    sleep:    { mood:"moonlight", density:18, breath:"478", pace:3, sounds:["rain","night"] },
+    festival: { mood:"festival",  density:56, breath:"off", pace:1, sounds:["chimes"] },
+  };
+
+  function applyPreset(name) {
+    const p = PRESETS[name];
+    if (!p) return;
+    // mood
+    state.mood = p.mood;
+    setActiveChip("#moodChips", "mood", p.mood);
+    // density
+    state.density = p.density;
+    document.getElementById("density").value = p.density;
+    updateDensityLabel();
+    buildCluster();
+    // breathing
+    state.breath = p.breath;
+    setActiveChip("#breathChips", "breath", p.breath);
+    state.pace = p.pace;
+    document.getElementById("pace").value = p.pace;
+    document.getElementById("paceVal").textContent = PACE[p.pace];
+    applyBreathing();
+    // sounds
+    audio();
+    ["rain","drone","chimes","night"].forEach(n => {
+      const want = p.sounds.includes(n);
+      toggleSound(n, want);
+      const chip = document.querySelector(`#soundChips .chip[data-sound="${n}"]`);
+      if (chip) chip.classList.toggle("on", want);
+    });
+    kindleAll();
+    toast(`Mood · ${name}`);
+    closePanels();
+  }
+
+  // ---------- UI wiring ----------
+  function setActiveChip(container, attr, val) {
+    document.querySelectorAll(`${container} .chip`).forEach(c =>
+      c.classList.toggle("on", c.dataset[attr] === String(val)));
+  }
+
+  function updateDensityLabel() {
+    const v = state.density;
+    const label = v < 24 ? "sparse" : v < 42 ? "medium" : v < 58 ? "full" : "overflowing";
+    document.getElementById("densityVal").textContent = label;
+  }
+
+  let toastTimer = null;
+  function toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+  }
+
+  const panels = ["panelCustomize", "panelSound", "panelPresets"].map(id => document.getElementById(id));
+  function closePanels() { panels.forEach(p => p.classList.remove("open")); }
+  function togglePanel(id) {
+    const target = document.getElementById(id);
+    const wasOpen = target.classList.contains("open");
+    closePanels();
+    if (!wasOpen) target.classList.add("open");
+  }
+
+  document.getElementById("btnCustomize").onclick = () => togglePanel("panelCustomize");
+  document.getElementById("btnSound").onclick = () => { audio(); togglePanel("panelSound"); };
+  document.getElementById("btnPresets").onclick = () => togglePanel("panelPresets");
+  document.querySelectorAll("[data-close]").forEach(b => b.onclick = closePanels);
+
+  document.getElementById("btnKindle").onclick = kindleAll;
+  document.getElementById("btnDim").onclick = dimAll;
+  document.getElementById("btnRelease").onclick = release;
+
+  // mood chips
+  document.querySelectorAll("#moodChips .chip").forEach(c => c.onclick = () => {
+    state.mood = c.dataset.mood;
+    setActiveChip("#moodChips", "mood", state.mood);
+    buildCluster();
+  });
+
+  // density
+  const densityEl = document.getElementById("density");
+  densityEl.oninput = () => { state.density = +densityEl.value; updateDensityLabel(); };
+  densityEl.onchange = buildCluster;
+
+  // toggles
+  document.getElementById("swayToggle").onchange = (e) => {
+    state.sway = e.target.checked;
+    allLanterns().forEach(l => l.classList.toggle("sway", state.sway));
+  };
+  document.getElementById("bellToggle").onchange = (e) => { state.bell = e.target.checked; };
+
+  // volume
+  const volEl = document.getElementById("volume");
+  volEl.oninput = () => {
+    document.getElementById("volVal").textContent = volEl.value + "%";
+    if (AC) setVolume(volEl.value / 100); else state.volume = volEl.value / 100;
+  };
+
+  // sounds
+  document.querySelectorAll("#soundChips .chip").forEach(c => c.onclick = () => {
+    audio();
+    const on = !c.classList.contains("on");
+    c.classList.toggle("on", on);
+    toggleSound(c.dataset.sound, on);
+  });
+
+  // breathing
+  document.querySelectorAll("#breathChips .chip").forEach(c => c.onclick = () => {
+    state.breath = c.dataset.breath;
+    setActiveChip("#breathChips", "breath", state.breath);
+    applyBreathing();
+  });
+  const paceEl = document.getElementById("pace");
+  paceEl.oninput = () => {
+    state.pace = +paceEl.value;
+    document.getElementById("paceVal").textContent = PACE[state.pace];
+    if (state.breath !== "off") applyBreathing();
+  };
+
+  // timer
+  document.querySelectorAll("#timerChips .chip").forEach(c => c.onclick = () => {
+    setActiveChip("#timerChips", "min", c.dataset.min);
+    startTimer(+c.dataset.min);
+    if (+c.dataset.min) toast(`Timer · ${c.dataset.min} min`);
+  });
+
+  // presets
+  document.querySelectorAll("#presetChips .chip").forEach(c => c.onclick = () => applyPreset(c.dataset.preset));
+
+  // ---------- stars ----------
+  (function stars() {
+    const box = document.getElementById("stars");
+    const n = reduceMotion ? 0 : 60;
+    let html = "";
+    for (let i = 0; i < n; i++) {
+      html += `<div class="star" style="left:${rand(0,100)}%;top:${rand(0,70)}%;--tw:${rand(4,9).toFixed(1)}s;animation-delay:${rand(0,6).toFixed(1)}s"></div>`;
+    }
+    box.innerHTML = html;
+  })();
+
+  // ---------- init & resize ----------
+  buildCluster();
+  updateDensityLabel();
+
+  let resizeT = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(buildCluster, 250);
+  });
+
+  // resume audio on first gesture (autoplay policies)
+  const kick = () => { if (state.volume > 0) audio(); window.removeEventListener("pointerdown", kick); };
+  window.addEventListener("pointerdown", kick);
+})();
+</script>
+</body>
+</html>
