@@ -608,11 +608,13 @@
   function createLanterns(){
     layer.innerHTML="";
     const pal=state.palette, W=window.innerWidth, H=window.innerHeight, n=state.density;
-    // sparse hanging arrangement: one lantern per shuffled column, generous air
+    // sparse hanging arrangement: one lantern per shuffled column, generous air.
+    // keep a margin off both edges so the night never feels crowded at the sides.
+    const marginX=Math.min(160,W*0.09), usable=W-marginX*2;
     const cols=n, order=[...Array(n).keys()].sort(()=>Math.random()-0.5);
     for(let i=0;i<n;i++){
       const c=order[i];
-      const x=(c+rand(0.28,0.72))*(W/cols);
+      const x=marginX+(c+rand(0.3,0.7))*(usable/cols);
       const yTop=rand(0.08,0.5)*H;
       const size=rand(112,168);
       makeLantern(x,yTop,size,pal,i);
