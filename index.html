@@ -229,6 +229,8 @@
     <button id="btnDim">Dim</button>
     <span class="sep"></span>
     <button id="btnRelease">Release</button>
+    <span class="sep"></span>
+    <button id="btnRenew">New</button>
   </nav>
 
   <!-- Collection panel -->
@@ -543,8 +545,7 @@
     if(!lit.length){ toast("Light a few lanterns first"); return; }
     if(state.bell)bell(196,0,0.7);
     lit.forEach((e,i)=>setTimeout(()=>{ e.classList.add("releasing"); setTimeout(()=>e.remove(),6600); },i*120));
-    toast("Released · let it drift");
-    setTimeout(()=>{ if(allL().length<Math.max(2,state.density*0.4))buildScene(); },7000);
+    toast("Released · tap New for a fresh gathering");
   }
 
   // ---------- breathing ----------
@@ -613,6 +614,7 @@
   document.getElementById("btnKindle").onclick=kindleAll;
   document.getElementById("btnDim").onclick=dimAll;
   document.getElementById("btnRelease").onclick=release;
+  document.getElementById("btnRenew").onclick=()=>{ buildScene(); toast("A new gathering"); };
 
   // collection: switch lantern culture (shape + palette + signature sound + note)
   function applyStyle(id){
