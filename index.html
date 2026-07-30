@@ -291,6 +291,8 @@
         <button class="chip" data-style="kandil">Kandil</button>
         <button class="chip" data-style="khomloi">Khom Loi</button>
         <button class="chip" data-style="moroccan">Moroccan</button>
+        <button class="chip" data-style="parol">Parol</button>
+        <button class="chip" data-style="farolito">Farolito</button>
       </div>
     </div>
     <p class="note" id="styleNote"></p>
@@ -403,7 +405,7 @@
   const darken  = (h,p)=>`rgb(${mix(h,0,p/100).join(",")})`;
   const haloOf  = h => { const c=hexToRgb(h).map(v=>Math.min(255,Math.round(v+(255-v)*0.4))); return `rgba(${c[0]},${c[1]},${c[2]},0.5)`; };
 
-  // ---------- the collection: eight lantern cultures ----------
+  // ---------- the collection: ten lantern cultures ----------
   // kind = silhouette · sound = signature ambience · origin + note = history
   // each sky: a saturated horizon/overhead glow + a clearly hued night gradient
   const SKY = {
@@ -415,6 +417,8 @@
     violet:"radial-gradient(74% 58% at 78% 12%, rgba(190,110,210,0.52), transparent 60%), linear-gradient(180deg,#301652 0%,#200e3a 55%,#120820 100%)",
     teal:"radial-gradient(80% 46% at 50% 100%, rgba(90,190,180,0.34), transparent 60%), radial-gradient(60% 44% at 80% 12%, rgba(90,170,180,0.46), transparent 60%), linear-gradient(180deg,#0c2c34 0%,#0a1c26 55%,#050e16 100%)",
     warm:"radial-gradient(74% 58% at 78% 12%, rgba(216,150,80,0.46), transparent 60%), linear-gradient(180deg,#2e2410 0%,#1c160a 55%,#0e0a04 100%)",
+    pine:"radial-gradient(70% 55% at 78% 12%, rgba(70,150,110,0.46), transparent 60%), linear-gradient(180deg,#0e2c22 0%,#0a1e18 55%,#05100c 100%)",
+    sienna:"radial-gradient(74% 58% at 78% 12%, rgba(228,140,70,0.48), transparent 60%), linear-gradient(180deg,#3a1e0e 0%,#241206 55%,#120904 100%)",
   };
   const STYLES = {
     hoian:{kind:"hoian",name:"Hội An",sound:"rain",sky:SKY.navy,moon:{top:"9%",left:"80%",r:82},origin:"Vietnam · Hội An",
@@ -441,6 +445,12 @@
     moroccan:{kind:"moroccan",name:"Moroccan",sound:"drone",sky:SKY.warm,moon:{top:"10%",left:"6%",r:70},origin:"Morocco · Pierced metal",
       note:"Pierced lanterns casting lace-like patterns of light, reimagined here in warm paper.",
       pal:[["#b8862b",293.66],["#8a3f2a",349.23],["#2f6f6a",392.00],["#7a3f86",466.16],["#b8562b",523.25]]},
+    parol:{kind:"parol",name:"Parol",sound:"chimes",sky:SKY.pine,moon:{top:"7%",left:"14%",r:74},origin:"Philippines · Parol",
+      note:"A five-pointed bamboo-and-paper star with trailing tails, hung for Christmas as the Star of Bethlehem.",
+      pal:[["#c62828",293.66],["#2e7d4f",349.23],["#e6b422",392.00],["#2f6fb0",440.00],["#b0338c",523.25]]},
+    farolito:{kind:"farolito",name:"Farolito",sound:"night",sky:SKY.sienna,moon:{top:"14%",left:"80%",r:70},origin:"Mexico · Farolito",
+      note:"A candle in a folded paper bag, lining pathways and rooftops to light the way during Las Posadas.",
+      pal:[["#d99a4e",261.63],["#c9822f",311.13],["#e0b26a",349.23],["#c26a2c",392.00],["#e8c98a",440.00]]},
   };
   const palOf = id => STYLES[id].pal.map(([silk,hz])=>({silk,hz}));
 
@@ -472,7 +482,7 @@
   };
   function toggleSound(name,on){ if(on){ if(!soundNodes[name])soundNodes[name]=builders[name](); state.sounds.add(name);} else { if(soundNodes[name]){soundNodes[name].stop();delete soundNodes[name];} state.sounds.delete(name);} }
 
-  // ---------- lantern rendering: eight cultural silhouettes ----------
+  // ---------- lantern rendering: ten cultural silhouettes ----------
   let svgSeq=0;
   function lanternSVG(kind, silk){
     const id=++svgSeq, cx=60;
@@ -539,6 +549,25 @@
         +`<polygon class="scrim" points="${poly}" fill="#06040c"/>`
         +`<rect x="54" y="10" width="12" height="9" rx="2" fill="#7a5a1e"/><line x1="60" y1="172" x2="60" y2="186" stroke="#7a5a1e" stroke-width="2"/><circle cx="60" cy="188" r="3" fill="#b8862b"/>`;
       vbH=196;
+    } else if(kind==="parol"){                // Filipino Parol (5-point star + tails)
+      const cyc=84,outer=52,inner=21,pts=[];
+      for(let k=0;k<10;k++){const R=k%2?inner:outer,a=(-90+k*36)*Math.PI/180;pts.push([(cx+R*Math.cos(a)).toFixed(1),(cyc+R*Math.sin(a)).toFixed(1)]);}
+      const poly=pts.map(p=>p.join(",")).join(" ");
+      let rays="";for(let k=0;k<10;k+=2)rays+=`<line x1="60" y1="${cyc}" x2="${pts[k][0]}" y2="${pts[k][1]}" stroke="rgba(20,12,8,0.22)" stroke-width="0.7"/>`;
+      const tail=(px,py,d)=>`<path d="M${px},${py} q ${d*7},13 ${d*2},25 q ${-d*6},11 ${d*3},24" fill="none" stroke="#d4462b" stroke-width="2.4" stroke-linecap="round"/>`;
+      content=`<polygon class="silk" points="${poly}" fill="url(#g${id})" stroke="#f0d060" stroke-width="1.6" stroke-linejoin="round"/>`+core(cyc,26,26)+rays
+        +`<polygon class="scrim" points="${poly}" fill="#06040c"/>`
+        +tail(pts[4][0],pts[4][1],1)+tail(pts[6][0],pts[6][1],-1)
+        +`<line x1="60" y1="${cyc-outer}" x2="60" y2="${cyc-outer-10}" stroke="#8f6a24" stroke-width="1.6"/>`;
+      vbH=cyc+outer+58;
+    } else if(kind==="farolito"){             // Mexican Farolito (glowing paper bag)
+      const x0=cx-33,y0=36,w=66,h=126,bot=y0+h,rr=`x="${x0}" y="${y0}" width="${w}" height="${h}" rx="6"`;
+      content=`<rect class="silk" ${rr} fill="url(#g${id})"/>`+core(y0+46,26,40)
+        +`<g class="core"><ellipse cx="60" cy="${y0+44}" rx="4.5" ry="9" fill="rgba(255,232,150,0.95)"/><ellipse cx="60" cy="${y0+40}" rx="2" ry="5" fill="rgba(255,250,220,0.95)"/></g>`
+        +`<path class="silk" d="M${x0-3},${y0+2} Q60,${y0-12} ${x0+w+3},${y0+2} L${x0+w+3},${y0+9} Q60,${y0-3} ${x0-3},${y0+9} Z" fill="${darken(silk,8)}"/>`
+        +`<rect class="scrim" ${rr} fill="#06040c"/>`
+        +`<rect x="${x0-4}" y="${bot-7}" width="${w+8}" height="11" rx="3" fill="#2e2214"/>`;
+      vbH=bot+12;
     } else {                                   // Hội An barrel (default)
       const top=16,bot=150,halfW=42,topH=26,botH=28,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH);
       content=`<path class="silk" d="${body}" fill="url(#g${id})"/>`+core(mid+4,25,45)+vribs(top,bot,topH,halfW,botH)
