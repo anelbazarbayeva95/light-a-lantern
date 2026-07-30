@@ -75,14 +75,22 @@
   .wordmark .idx{color:var(--ink-3);letter-spacing:.1em;margin-left:9px;}
   nav .links button{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);background:none;border:none;cursor:pointer;padding:0;transition:color .2s;}
   nav .links button:hover{color:var(--ink);}
-  /* on-screen culture arrows (swipe affordance) */
-  .nav-arrow{position:fixed;top:50%;transform:translateY(-50%);z-index:6;width:44px;height:64px;
-    display:flex;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;
-    color:var(--ink-2);opacity:.55;transition:opacity .2s,color .2s;-webkit-tap-highlight-color:transparent;}
-  .nav-arrow:hover{opacity:1;color:var(--ink);}
-  .nav-arrow.left{left:6px;}
-  .nav-arrow.right{right:6px;}
-  @media(max-width:560px){.nav-arrow{width:36px;height:52px;opacity:.7;}}
+  /* prev / next culture preview cards (swipe affordance) */
+  .swipe-card{position:fixed;top:50%;transform:translateY(-50%);z-index:6;width:82px;
+    display:flex;flex-direction:column;align-items:center;gap:7px;
+    border:1px solid var(--line);border-radius:6px;padding:11px 8px 10px;
+    background:rgba(8,12,26,0.32);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    cursor:pointer;opacity:.72;transition:opacity .2s,border-color .2s;-webkit-tap-highlight-color:transparent;}
+  .swipe-card:hover{opacity:1;border-color:var(--line-2);}
+  .swipe-card.prev{left:16px;}
+  .swipe-card.next{right:16px;}
+  .swipe-card .dir{font-family:var(--mono);font-size:12px;color:var(--ink-3);line-height:1;}
+  .swipe-card .mini{height:56px;display:flex;align-items:flex-start;justify-content:center;}
+  .swipe-card .mini svg{width:40px;height:auto;display:block;}
+  .swipe-card .mini svg .scrim{opacity:0;}
+  .swipe-card .mini svg .core{opacity:1;}
+  .swipe-card .cap{font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);text-align:center;line-height:1.3;}
+  @media(max-width:640px){.swipe-card{width:60px;padding:8px 5px;} .swipe-card .mini{height:42px;} .swipe-card .mini svg{width:30px;}}
 
   .navright{display:flex;align-items:center;gap:10px;}
   .iconbtn{width:32px;height:30px;border:1px solid var(--line);border-radius:5px;background:none;color:var(--ink-2);cursor:pointer;transition:border-color .2s,color .2s;display:flex;align-items:center;justify-content:center;padding:0;}
@@ -227,11 +235,11 @@
   </div>
   <div id="hint" class="label">tap a lantern to begin</div>
 
-  <button class="nav-arrow left" id="arrowPrev" aria-label="Previous lantern culture">
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+  <button class="swipe-card prev" id="cardPrev" aria-label="Previous culture">
+    <span class="dir">‹</span><span class="mini" id="miniPrev"></span><span class="cap" id="capPrev"></span>
   </button>
-  <button class="nav-arrow right" id="arrowNext" aria-label="Next lantern culture">
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+  <button class="swipe-card next" id="cardNext" aria-label="Next culture">
+    <span class="dir">›</span><span class="mini" id="miniNext"></span><span class="cap" id="capNext"></span>
   </button>
 
   <div id="timerReadout" aria-live="polite"></div>
@@ -667,14 +675,23 @@
     document.querySelectorAll("#moodChips .chip").forEach(c=>c.classList.remove("on"));
     document.getElementById("styleNote").innerHTML=`<span class="note-origin">${s.origin}</span>${s.note}`;
     ["rain","drone","chimes","night"].forEach(nm=>{ toggleSound(nm,nm===s.sound); const chip=document.querySelector(`#soundChips .chip[data-sound="${nm}"]`); if(chip)chip.classList.toggle("on",nm===s.sound); });
-    buildScene(); toast(s.name);
+    regenStars(); updateSwipeCards(); buildScene(); toast(s.name);
   }
   document.querySelectorAll("#styleChips .chip").forEach(c=>c.onclick=()=>applyStyle(c.dataset.style));
   // cycle cultures (swipe / arrow keys)
   const STYLE_IDS=Object.keys(STYLES);
   function cycleStyle(dir){ let i=STYLE_IDS.indexOf(state.style); i=(i+dir+STYLE_IDS.length)%STYLE_IDS.length; applyStyle(STYLE_IDS[i]); }
-  document.getElementById("arrowPrev").onclick=()=>cycleStyle(-1);
-  document.getElementById("arrowNext").onclick=()=>cycleStyle(1);
+  document.getElementById("cardPrev").onclick=()=>cycleStyle(-1);
+  document.getElementById("cardNext").onclick=()=>cycleStyle(1);
+  function updateSwipeCards(){
+    const i=STYLE_IDS.indexOf(state.style);
+    const prev=STYLES[STYLE_IDS[(i-1+STYLE_IDS.length)%STYLE_IDS.length]];
+    const next=STYLES[STYLE_IDS[(i+1)%STYLE_IDS.length]];
+    document.getElementById("miniPrev").innerHTML=lanternSVG(prev.kind,prev.pal[0][0]);
+    document.getElementById("capPrev").textContent=prev.name;
+    document.getElementById("miniNext").innerHTML=lanternSVG(next.kind,next.pal[0][0]);
+    document.getElementById("capNext").textContent=next.name;
+  }
   // initial note (no side effects)
   (function(){ const s=STYLES[state.style]; document.getElementById("styleNote").innerHTML=`<span class="note-origin">${s.origin}</span>${s.note}`; })();
 
@@ -695,8 +712,9 @@
   document.querySelectorAll("#timerChips .chip").forEach(c=>c.onclick=()=>{ setActive("#timerChips","min",c.dataset.min); startTimer(+c.dataset.min); if(+c.dataset.min)toast("Timer · "+c.dataset.min+" min"); });
   document.querySelectorAll("#presetChips .chip").forEach(c=>c.onclick=()=>applyPreset(c.dataset.preset));
 
-  // stars
-  (function(){ const box=document.getElementById("stars"), n=reduceMotion?0:44; let h=""; for(let i=0;i<n;i++)h+=`<div class="star" style="left:${rand(0,100)}%;top:${rand(0,60)}%;--tw:${rand(4,9).toFixed(1)}s;animation-delay:${rand(0,6).toFixed(1)}s"></div>`; box.innerHTML=h; })();
+  // stars — regenerated (repositioned) whenever the culture/sky changes
+  function regenStars(){ const box=document.getElementById("stars"), n=reduceMotion?0:rand(38,54)|0; let h=""; for(let i=0;i<n;i++)h+=`<div class="star" style="left:${rand(0,100)}%;top:${rand(0,64)}%;--tw:${rand(4,9).toFixed(1)}s;animation-delay:${rand(0,6).toFixed(1)}s"></div>`; box.innerHTML=h; }
+  regenStars();
 
   // clock tag
   // mute / unmute
@@ -732,8 +750,9 @@
     document.addEventListener("keydown",e=>{ if(e.key==="Escape")close(); });
   })();
 
-  // initial sky + moon for the default culture
+  // initial sky + moon + preview cards for the default culture
   (function(){ const s=STYLES[state.style],m=document.getElementById("moon"); document.body.style.background=s.sky; m.style.top=s.moon.top; m.style.left=s.moon.left; m.style.width=m.style.height=s.moon.r+"px"; })();
+  updateSwipeCards();
   buildScene(); updateDensityLabel();
   let rz=null; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(buildScene,250); });
   const kick=()=>{ if(state.volume>0)audio(); window.removeEventListener("pointerdown",kick); };
