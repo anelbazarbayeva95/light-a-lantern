@@ -145,6 +145,8 @@
   .switch input:checked + .slider::before{transform:translateX(18px);background:var(--accent);}
   .panel .body-text{font-family:var(--serif);font-size:14.5px;line-height:1.6;color:var(--ink-2);}
   .panel .body-text em{color:var(--ink);font-style:italic;}
+  .panel .note{font-family:var(--serif);font-size:13.5px;line-height:1.62;color:var(--ink-2);border-top:1px solid var(--line);padding-top:15px;margin-top:2px;}
+  .panel .note .note-origin{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:7px;}
 
   /* breathing cue */
   #breathCue{position:fixed;left:50%;top:44%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;
@@ -186,6 +188,7 @@
   <nav>
     <div class="links">
       <span class="wordmark">Light a Lantern<span class="idx">№ 01</span></span>
+      <button data-open="panelCollection">Collection</button>
       <button data-open="panelSound">Sounds</button>
       <button data-open="panelRitual">Ritual</button>
       <button data-open="panelAbout">About</button>
@@ -201,6 +204,9 @@
     <h1>Kindle a light,<br>sit a while,<br>then <span class="em">let it drift.</span></h1>
   </div>
   <div id="hint" class="label">tap a lantern to begin</div>
+
+  <div id="timerReadout" aria-live="polite"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
 
   <!-- first-time instructions -->
   <div id="intro" role="dialog" aria-modal="true" aria-label="How to use">
@@ -224,6 +230,26 @@
     <span class="sep"></span>
     <button id="btnRelease">Release</button>
   </nav>
+
+  <!-- Collection panel -->
+  <aside id="panelCollection" class="panel" aria-label="Collection">
+    <button class="close" data-close aria-label="Close">×</button>
+    <h2>The <span class="it">collection</span></h2>
+    <p class="sub">Lanterns of the world · tap to reshape the night</p>
+    <div class="field">
+      <div class="chips" id="styleChips">
+        <button class="chip on" data-style="hoian">Hội An</button>
+        <button class="chip" data-style="chinese">Dēnglóng</button>
+        <button class="chip" data-style="chochin">Chōchin</button>
+        <button class="chip" data-style="andon">Andon</button>
+        <button class="chip" data-style="korean">Korean</button>
+        <button class="chip" data-style="kandil">Kandil</button>
+        <button class="chip" data-style="khomloi">Khom Loi</button>
+        <button class="chip" data-style="moroccan">Moroccan</button>
+      </div>
+    </div>
+    <p class="note" id="styleNote"></p>
+  </aside>
 
   <!-- Sound panel -->
   <aside id="panelSound" class="panel" aria-label="Ambience">
@@ -332,8 +358,39 @@
   const darken  = (h,p)=>`rgb(${mix(h,0,p/100).join(",")})`;
   const haloOf  = h => { const c=hexToRgb(h).map(v=>Math.min(255,Math.round(v+(255-v)*0.4))); return `rgba(${c[0]},${c[1]},${c[2]},0.5)`; };
 
-  const state = { mood:"festival", density:7, sway:!reduceMotion, bell:true, volume:0.6,
+  // ---------- the collection: eight lantern cultures ----------
+  // kind = silhouette · sound = signature ambience · origin + note = history
+  const STYLES = {
+    hoian:{kind:"hoian",name:"Hội An",sound:"rain",origin:"Vietnam · Hội An",
+      note:"Silk-over-bamboo lanterns in lotus and garlic shapes, glowing along the old riverside town.",
+      pal:[["#b8564a",293.66],["#2c7d86",349.23],["#caa23e",392.00],["#4a5aa0",440.00],["#7a4a86",523.25],["#c9b48a",329.63]]},
+    chinese:{kind:"round",name:"Dēnglóng",sound:"chimes",origin:"China · Dēnglóng 灯笼",
+      note:"Round silk-and-bamboo lanterns, red with gold tassels — symbols of luck and reunion, lit for the Lantern Festival.",
+      pal:[["#c0392b",261.63],["#a81f1f",311.13],["#d4452f",349.23],["#b22b26",392.00],["#cf5a3a",440.00],["#9e2b25",523.25]]},
+    chochin:{kind:"chochin",name:"Chōchin",sound:"night",origin:"Japan · Chōchin 提灯",
+      note:"Collapsible bamboo-and-washi lanterns with horizontal ribs, hung outside shrines and restaurants.",
+      pal:[["#e6ddcb",329.63],["#d8cfc0",392.00],["#c0392b",261.63],["#ded6c4",440.00],["#cf5a3a",311.13],["#efe7d6",523.25]]},
+    andon:{kind:"andon",name:"Andon",sound:"drone",origin:"Japan · Andon 行灯",
+      note:"A square wooden-framed paper lamp for quiet indoor light — more architectural than the chōchin.",
+      pal:[["#e0c48a",261.63],["#d8b877",311.13],["#e6cf9a",349.23],["#d0aa66",392.00],["#e8d4a2",440.00]]},
+    korean:{kind:"korean",name:"Korean",sound:"chimes",origin:"Korea · Cheongsachorong 청사초롱",
+      note:"A wedding lantern split into blue and red — the harmony of yin and yang.",
+      pal:[["#8a3b6a",329.63],["#7a3b7a",392.00],["#8a3b5a",440.00],["#6a3b8a",493.88]]},
+    kandil:{kind:"kandil",name:"Kandil",sound:"chimes",origin:"India · Akash Kandil",
+      note:"A bright geometric star hung outside homes for Diwali, the festival of lights.",
+      pal:[["#e08a1e",293.66],["#d4462b",349.23],["#e6b422",392.00],["#c0329a",466.16],["#e07a1e",523.25]]},
+    khomloi:{kind:"khomloi",name:"Khom Loi",sound:"night",origin:"Thailand · Khom Loi",
+      note:"Paper sky-lanterns released together at Yi Peng, carrying wishes and misfortune away into the night.",
+      pal:[["#f0d9a0",349.23],["#ecca85",392.00],["#f2e0b0",440.00],["#e8b96a",293.66]]},
+    moroccan:{kind:"moroccan",name:"Moroccan",sound:"drone",origin:"Morocco · Pierced metal",
+      note:"Pierced lanterns casting lace-like patterns of light, reimagined here in warm paper.",
+      pal:[["#b8862b",293.66],["#8a3f2a",349.23],["#2f6f6a",392.00],["#7a3f86",466.16],["#b8562b",523.25]]},
+  };
+  const palOf = id => STYLES[id].pal.map(([silk,hz])=>({silk,hz}));
+
+  const state = { style:"hoian", palette:null, mood:"festival", density:7, sway:!reduceMotion, bell:true, volume:0.6,
     breath:"off", pace:1, sounds:new Set(), timerId:null, timerEnd:0, tickId:null };
+  state.palette = palOf(state.style);
 
   // ---------- Web Audio ----------
   let AC=null, master=null; const soundNodes={};
@@ -359,31 +416,81 @@
   };
   function toggleSound(name,on){ if(on){ if(!soundNodes[name])soundNodes[name]=builders[name](); state.sounds.add(name);} else { if(soundNodes[name]){soundNodes[name].stop();delete soundNodes[name];} state.sounds.delete(name);} }
 
-  // ---------- lantern rendering (minimal silk barrel) ----------
+  // ---------- lantern rendering: eight cultural silhouettes ----------
   let svgSeq=0;
-  const SHAPES=["barrel","barrel","tall","round"];
-  function lanternSVG(silk,shape){
+  function lanternSVG(kind, silk){
     const id=++svgSeq, cx=60;
-    let top=16, bot=150, halfW=42, topH=26, botH=28;
-    if(shape==="tall"){ top=12; bot=160; halfW=36; topH=24; botH=26; }
-    if(shape==="round"){ top=20; bot=142; halfW=48; topH=30; botH=32; }
-    const mid=(top+bot)/2;
-    const body=`M${cx-topH},${top} Q ${cx-halfW},${mid} ${cx-botH},${bot} L ${cx+botH},${bot} Q ${cx+halfW},${mid} ${cx+topH},${top} Z`;
-    let ribs=""; [-1,-0.6,-0.2,0.2,0.6,1].forEach(f=>{ ribs+=`<path d="M${(cx+f*topH).toFixed(1)},${top} Q ${(cx+f*halfW).toFixed(1)},${mid} ${(cx+f*botH).toFixed(1)},${bot}" fill="none" stroke="rgba(20,12,8,0.3)" stroke-width="${Math.abs(f)>0.9?0.9:0.5}"/>`; });
-    return `<svg viewBox="0 0 120 216" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMin meet" aria-hidden="true">`
-      +`<defs><linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lighten(silk,28)}"/><stop offset="50%" stop-color="${silk}"/><stop offset="100%" stop-color="${darken(silk,28)}"/></linearGradient>`
-      +`<radialGradient id="c${id}" cx="50%" cy="46%" r="60%"><stop offset="0%" stop-color="rgba(255,247,225,0.92)"/><stop offset="45%" stop-color="rgba(255,214,150,0.5)"/><stop offset="100%" stop-color="rgba(255,180,90,0)"/></radialGradient></defs>`
-      +`<path class="silk" d="${body}" fill="url(#g${id})"/>`
-      +`<ellipse class="core" cx="60" cy="${mid+4}" rx="${(halfW*0.6).toFixed(0)}" ry="${((bot-top)*0.34).toFixed(0)}" fill="url(#c${id})"/>`
-      +ribs
-      +`<path class="scrim" d="${body}" fill="#06040c"/>`
-      +`<rect x="${cx-topH}" y="${top-5}" width="${2*topH}" height="6" rx="3" fill="#8f6a24"/>`
-      +`<rect x="57" y="${top-12}" width="6" height="8" rx="2" fill="#5e3f18"/>`
-      +`<rect x="${cx-botH}" y="${bot-1}" width="${2*botH}" height="6" rx="3" fill="#8f6a24"/>`
-      +`<line x1="60" y1="${bot+5}" x2="60" y2="${bot+22}" stroke="#8f6a24" stroke-width="1.4"/>`
-      +`<circle cx="60" cy="${bot+24}" r="3" fill="#c79a3f"/>`
-      +`<g stroke="#c79a3f" stroke-width="1.3"><line x1="60" y1="${bot+26}" x2="57" y2="${bot+42}"/><line x1="60" y1="${bot+26}" x2="60" y2="${bot+45}"/><line x1="60" y1="${bot+26}" x2="63" y2="${bot+42}"/></g>`
-      +`</svg>`;
+    const defs = `<defs><linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lighten(silk,28)}"/><stop offset="50%" stop-color="${silk}"/><stop offset="100%" stop-color="${darken(silk,28)}"/></linearGradient>`
+      + `<radialGradient id="c${id}" cx="50%" cy="46%" r="62%"><stop offset="0%" stop-color="rgba(255,247,225,0.94)"/><stop offset="45%" stop-color="rgba(255,216,150,0.5)"/><stop offset="100%" stop-color="rgba(255,180,90,0)"/></radialGradient></defs>`;
+    const core=(cy,rx,ry)=>`<ellipse class="core" cx="60" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#c${id})"/>`;
+    const goldCap=(x,y,w)=>`<rect x="${x}" y="${y}" width="${w}" height="6" rx="3" fill="#8f6a24"/>`;
+    const barrel=(top,bot,topH,halfW,botH)=>{const mid=(top+bot)/2;return `M${cx-topH},${top} Q ${cx-halfW},${mid} ${cx-botH},${bot} L ${cx+botH},${bot} Q ${cx+halfW},${mid} ${cx+topH},${top} Z`;};
+    const vribs=(top,bot,topH,halfW,botH)=>{const mid=(top+bot)/2;let r="";[-1,-0.6,-0.2,0.2,0.6,1].forEach(f=>{r+=`<path d="M${(cx+f*topH).toFixed(1)},${top} Q ${(cx+f*halfW).toFixed(1)},${mid} ${(cx+f*botH).toFixed(1)},${bot}" fill="none" stroke="rgba(20,12,8,0.3)" stroke-width="${Math.abs(f)>0.9?0.9:0.5}"/>`;});return r;};
+    const tassel=(y,col)=>{const c=col||"#c79a3f";return `<line x1="60" y1="${y}" x2="60" y2="${y+16}" stroke="#8f6a24" stroke-width="1.4"/><circle cx="60" cy="${y+18}" r="3.2" fill="${c}"/><g stroke="${c}" stroke-width="1.3"><line x1="60" y1="${y+20}" x2="57" y2="${y+40}"/><line x1="60" y1="${y+20}" x2="60" y2="${y+43}"/><line x1="60" y1="${y+20}" x2="63" y2="${y+40}"/></g>`;};
+    let content="", vbH=216;
+
+    if(kind==="round"){                       // Chinese Dēnglóng
+      const top=22,bot=150,halfW=55,topH=32,botH=34,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH);
+      content=`<path class="silk" d="${body}" fill="url(#g${id})"/>`+core(mid+2,34,44)+vribs(top,bot,topH,halfW,botH)
+        +`<path class="scrim" d="${body}" fill="#06040c"/>`
+        +goldCap(cx-topH,top-5,2*topH)+`<rect x="55" y="${top-13}" width="10" height="9" rx="2" fill="#5e3f18"/>`+goldCap(cx-botH,bot-1,2*botH)+tassel(bot+6,"#c0402b");
+      vbH=bot+56;
+    } else if(kind==="chochin"){              // Japanese Chōchin (horizontal ribs)
+      const top=20,bot=170,halfW=45,topH=37,botH=37,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH);
+      let rings="";for(let i=1;i<=10;i++){const y=top+i/11*(bot-top),t=(y-top)/(bot-top),ww=halfW*(1-0.26*Math.abs(1-2*t));rings+=`<path d="M${(cx-ww).toFixed(1)},${y.toFixed(1)} Q 60,${(y+2.4).toFixed(1)} ${(cx+ww).toFixed(1)},${y.toFixed(1)}" fill="none" stroke="rgba(20,12,8,0.26)" stroke-width="0.7"/>`;}
+      content=`<path class="silk" d="${body}" fill="url(#g${id})"/>`+core(mid,26,50)+rings
+        +`<path class="scrim" d="${body}" fill="#06040c"/>`
+        +`<rect x="${cx-16}" y="${top-4}" width="32" height="5" rx="2" fill="#2a1c10"/><rect x="57" y="${top-11}" width="6" height="7" rx="2" fill="#2a1c10"/>`
+        +`<rect x="${cx-14}" y="${bot-1}" width="28" height="5" rx="2" fill="#2a1c10"/>`+tassel(bot+4,"#c0402b");
+      vbH=bot+52;
+    } else if(kind==="andon"){                // Japanese Andon (square wooden frame)
+      const x0=cx-40,y0=24,w=80,h=144,bot=y0+h,r=`x="${x0}" y="${y0}" width="${w}" height="${h}" rx="4"`;
+      content=`<rect class="silk" ${r} fill="url(#g${id})"/>`+core(y0+h/2,34,52)
+        +`<g stroke="#3a2a18" stroke-width="2.4" fill="none"><rect ${r}/><line x1="60" y1="${y0}" x2="60" y2="${bot}"/><line x1="${x0}" y1="${y0+h/3}" x2="${x0+w}" y2="${y0+h/3}"/><line x1="${x0}" y1="${y0+2*h/3}" x2="${x0+w}" y2="${y0+2*h/3}"/></g>`
+        +`<rect class="scrim" ${r} fill="#06040c"/>`
+        +`<rect x="${cx-30}" y="14" width="60" height="9" rx="2" fill="#2a1c10"/><rect x="${cx-46}" y="${bot}" width="92" height="9" rx="2" fill="#241a10"/>`;
+      vbH=bot+16;
+    } else if(kind==="korean"){               // Korean Cheongsachorong (blue/red split)
+      const top=22,bot=164,halfW=40,topH=34,botH=34,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH),blue="#2f5aa8",red="#c0392b";
+      content=`<defs><clipPath id="k${id}"><path d="${body}"/></clipPath>`
+        +`<linearGradient id="gb${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lighten(blue,26)}"/><stop offset="100%" stop-color="${darken(blue,16)}"/></linearGradient>`
+        +`<linearGradient id="gr${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lighten(red,20)}"/><stop offset="100%" stop-color="${darken(red,18)}"/></linearGradient></defs>`
+        +`<g class="silk" clip-path="url(#k${id})"><rect x="0" y="${top-2}" width="120" height="${mid-top+2}" fill="url(#gb${id})"/><rect x="0" y="${mid}" width="120" height="${bot-mid+2}" fill="url(#gr${id})"/></g>`
+        +core(mid,24,46)+vribs(top,bot,topH,halfW,botH)
+        +`<path class="scrim" d="${body}" fill="#06040c"/>`
+        +goldCap(cx-topH,top-5,2*topH)+`<rect x="57" y="${top-13}" width="6" height="9" rx="2" fill="#5e3f18"/>`+goldCap(cx-botH,bot-1,2*botH)+tassel(bot+6,"#e0c060");
+      vbH=bot+56;
+    } else if(kind==="kandil"){               // Indian Kandil (8-point star)
+      const cyc=94,outer=54,inner=27,pts=[];
+      for(let k=0;k<16;k++){const R=k%2?inner:outer,a=(-90+k*22.5)*Math.PI/180;pts.push([(cx+R*Math.cos(a)).toFixed(1),(cyc+R*Math.sin(a)).toFixed(1)]);}
+      const poly=pts.map(p=>p.join(",")).join(" ");
+      let strands="";for(let s=-2;s<=2;s++)strands+=`<line x1="${60+s*4}" y1="${cyc+outer-6}" x2="${60+s*7}" y2="${cyc+outer+34}" stroke="#e0b422" stroke-width="1.4"/>`;
+      content=`<polygon class="silk" points="${poly}" fill="url(#g${id})" stroke="#e6c34a" stroke-width="1.4" stroke-linejoin="round"/>`+core(cyc,24,24)
+        +`<polygon class="scrim" points="${poly}" fill="#06040c"/>`
+        +`<line x1="60" y1="${cyc-outer}" x2="60" y2="${cyc-outer-10}" stroke="#8f6a24" stroke-width="1.6"/><circle cx="60" cy="${cyc-outer-12}" r="3" fill="#e0b422"/>`+strands;
+      vbH=cyc+outer+40;
+    } else if(kind==="khomloi"){              // Thai Khom Loi (sky lantern)
+      const body=`M60,14 C ${60+46},22 ${60+42},118 ${60+12},156 L ${60-12},156 C ${60-42},118 ${60-46},22 60,14 Z`;
+      content=`<path class="silk" d="${body}" fill="url(#g${id})"/>`+core(126,24,34)+core(150,7,7)+vribs(16,150,20,44,12)
+        +`<path class="scrim" d="${body}" fill="#0a0510"/>`
+        +`<ellipse cx="60" cy="156" rx="12" ry="3" fill="#3a2a18"/><line x1="52" y1="14" x2="68" y2="14" stroke="#8f6a24" stroke-width="2"/>`;
+      vbH=176;
+    } else if(kind==="moroccan"){             // Moroccan pierced lantern (hexagon)
+      const pts=[[60,18],[104,58],[104,132],[60,172],[16,132],[16,58]],poly=pts.map(p=>p.join(",")).join(" ");
+      let dots="";[[70,3],[92,4],[114,4],[136,3]].forEach(([y,n])=>{for(let i=0;i<n;i++){const x=60+(i-(n-1)/2)*18;dots+=`<circle cx="${x}" cy="${y}" r="3" fill="url(#c${id})"/>`;}});
+      content=`<polygon class="silk" points="${poly}" fill="url(#g${id})"/>`+core(96,30,44)+`<g class="core">${dots}</g>`
+        +`<polygon points="${poly}" fill="none" stroke="rgba(20,12,8,0.35)" stroke-width="1"/>`
+        +`<polygon class="scrim" points="${poly}" fill="#06040c"/>`
+        +`<rect x="54" y="10" width="12" height="9" rx="2" fill="#7a5a1e"/><line x1="60" y1="172" x2="60" y2="186" stroke="#7a5a1e" stroke-width="2"/><circle cx="60" cy="188" r="3" fill="#b8862b"/>`;
+      vbH=196;
+    } else {                                   // Hội An barrel (default)
+      const top=16,bot=150,halfW=42,topH=26,botH=28,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH);
+      content=`<path class="silk" d="${body}" fill="url(#g${id})"/>`+core(mid+4,25,45)+vribs(top,bot,topH,halfW,botH)
+        +`<path class="scrim" d="${body}" fill="#06040c"/>`
+        +goldCap(cx-topH,top-5,2*topH)+`<rect x="57" y="${top-12}" width="6" height="8" rx="2" fill="#5e3f18"/>`+goldCap(cx-botH,bot-1,2*botH)+tassel(bot+6);
+      vbH=bot+52;
+    }
+    return `<svg viewBox="0 0 120 ${vbH}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMin meet" aria-hidden="true">${defs}${content}</svg>`;
   }
 
   const layer=document.getElementById("lanterns");
@@ -395,7 +502,7 @@
 
   function buildScene(){
     layer.innerHTML="";
-    const pal=PALETTES[state.mood], W=window.innerWidth, H=window.innerHeight, n=state.density;
+    const pal=state.palette, W=window.innerWidth, H=window.innerHeight, n=state.density;
     // sparse hanging arrangement: one lantern per shuffled column, generous air
     const cols=n, order=[...Array(n).keys()].sort(()=>Math.random()-0.5);
     for(let i=0;i<n;i++){
@@ -421,8 +528,7 @@
     el.style.setProperty("--sa",rand(1,2.2).toFixed(2)+"deg");
     el.dataset.hz=p.hz;
     el.setAttribute("role","button"); el.setAttribute("tabindex","0"); el.setAttribute("aria-label","silk lantern");
-    const shape=SHAPES[(Math.random()*SHAPES.length)|0];
-    el.innerHTML=`<div class="cord" style="height:${yTop.toFixed(0)}px"></div><div class="halo"></div>`+lanternSVG(p.silk,shape);
+    el.innerHTML=`<div class="cord" style="height:${yTop.toFixed(0)}px"></div><div class="halo"></div>`+lanternSVG(STYLES[state.style].kind,p.silk);
     const light=()=>{ if(el.classList.contains("releasing"))return; const was=el.classList.contains("lit"); el.classList.toggle("lit"); if(!was&&state.bell)bell(parseFloat(el.dataset.hz)); dismissHero(); };
     el.addEventListener("click",light);
     el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();light();} });
@@ -482,7 +588,8 @@
   };
   function applyPreset(name){
     const p=PRESETS[name]; if(!p)return; audio();
-    state.mood=p.mood; setActive("#moodChips","mood",p.mood);
+    state.mood=p.mood; state.palette=PALETTES[p.mood]; setActive("#moodChips","mood",p.mood);
+    document.querySelectorAll("#styleChips .chip").forEach(x=>x.classList.remove("on"));
     state.density=p.density; document.getElementById("density").value=p.density; updateDensityLabel();
     buildScene();
     state.breath=p.breath; setActive("#breathChips","breath",p.breath);
@@ -497,7 +604,7 @@
   function updateDensityLabel(){ const v=state.density; document.getElementById("densityVal").textContent = v<=4?"a whisper":v<=8?"a few":v<=13?"a gathering":"a festival"; }
   let toastT=null; function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2400); }
 
-  const panels=["panelSound","panelRitual","panelConfigure","panelAbout"].map(id=>document.getElementById(id));
+  const panels=["panelCollection","panelSound","panelRitual","panelConfigure","panelAbout"].map(id=>document.getElementById(id));
   function closePanels(){ panels.forEach(p=>p.classList.remove("open")); }
   function togglePanel(id){ const t=document.getElementById(id),was=t.classList.contains("open"); closePanels(); if(!was)t.classList.add("open"); }
   document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{ audio(); togglePanel(b.dataset.open); });
@@ -507,7 +614,21 @@
   document.getElementById("btnDim").onclick=dimAll;
   document.getElementById("btnRelease").onclick=release;
 
-  document.querySelectorAll("#moodChips .chip").forEach(c=>c.onclick=()=>{ state.mood=c.dataset.mood; setActive("#moodChips","mood",state.mood); buildScene(); });
+  // collection: switch lantern culture (shape + palette + signature sound + note)
+  function applyStyle(id){
+    const s=STYLES[id]; if(!s)return; audio();
+    state.style=id; state.palette=palOf(id);
+    setActive("#styleChips","style",id);
+    document.querySelectorAll("#moodChips .chip").forEach(c=>c.classList.remove("on"));
+    document.getElementById("styleNote").innerHTML=`<span class="note-origin">${s.origin}</span>${s.note}`;
+    ["rain","drone","chimes","night"].forEach(nm=>{ toggleSound(nm,nm===s.sound); const chip=document.querySelector(`#soundChips .chip[data-sound="${nm}"]`); if(chip)chip.classList.toggle("on",nm===s.sound); });
+    buildScene(); toast(s.name);
+  }
+  document.querySelectorAll("#styleChips .chip").forEach(c=>c.onclick=()=>applyStyle(c.dataset.style));
+  // initial note (no side effects)
+  (function(){ const s=STYLES[state.style]; document.getElementById("styleNote").innerHTML=`<span class="note-origin">${s.origin}</span>${s.note}`; })();
+
+  document.querySelectorAll("#moodChips .chip").forEach(c=>c.onclick=()=>{ state.mood=c.dataset.mood; state.palette=PALETTES[c.dataset.mood]; setActive("#moodChips","mood",state.mood); document.querySelectorAll("#styleChips .chip").forEach(x=>x.classList.remove("on")); buildScene(); });
   const densityEl=document.getElementById("density");
   densityEl.oninput=()=>{ state.density=+densityEl.value; updateDensityLabel(); };
   densityEl.onchange=buildScene;

@@ -32,10 +32,18 @@ Or, if this repo is served with **GitHub Pages**, it runs live at
 
 **Lanterns**
 - Tap any lantern to kindle a warm glow and a soft bell tone.
-- Six silk colours, each tuned to a different pitch, so lighting the
-  alley plays a gentle scale.
-- Lanterns hang in an organic cluster with a gentle sway; the cluster
-  regenerates on load and on window resize.
+- Each silk colour is tuned to a different pitch, so lighting the night
+  plays a gentle scale.
+- A first-time **how-to** overlay explains the gestures; reopen it any
+  time from the **?** button.
+
+**The Collection — lanterns of the world**
+- Eight cultural styles, each with its own silhouette, palette, a
+  signature soundscape, and a short history note:
+  Vietnamese **Hội An**, Chinese **Dēnglóng**, Japanese **Chōchin** and
+  **Andon**, Korean **Cheongsachorong**, Indian **Kandil**, Thai
+  **Khom Loi**, and a Moroccan pierced-metal style.
+- Pick one to reshape the whole night.
 
 **Gestures**
 - **Kindle all** / **Dim all** — light or quiet the whole alley.
