@@ -612,17 +612,20 @@
     // keep a margin off both edges so the night never feels crowded at the sides.
     const marginX=Math.min(160,W*0.09), usable=W-marginX*2;
     const narrow=W<640;
-    // lanterns scale down on smaller viewports so they don't crowd
-    const sizeScale=Math.max(0.5,Math.min(1,W/1200)), sizeMin=112*sizeScale, sizeMax=168*sizeScale;
-    // one lantern per column; cap columns by width so bodies keep their distance —
-    // snug on phones, more generous on wide screens.
-    const t=Math.max(0,Math.min(1,(W-700)/500)), packW=sizeMax*(0.95-0.4*t);
+    // largest a lantern may get, scaled down on smaller viewports
+    const sizeCeil=168*Math.max(0.5,Math.min(1,W/1200));
+    // one lantern per column; more columns on phones (bodies are only ~70% of each
+    // svg's width, so they can sit closer than the raw size suggests) — aim ~5–6 on
+    // a phone, up to the density setting on wide screens.
+    const packW=narrow?62:Math.max(96,sizeCeil*0.62);
     const cols=Math.max(2,Math.min(state.density,Math.floor(usable/packW)));
+    const colSpacing=usable/cols;
     const order=[...Array(cols).keys()].sort(()=>Math.random()-0.5);
     for(let i=0;i<cols;i++){
       const c=order[i];
-      const x=marginX+(c+rand(0.3,0.7))*(usable/cols);
-      const size=rand(sizeMin,sizeMax);
+      const x=marginX+(c+rand(0.44,0.56))*colSpacing;
+      // vary each lantern's size, but cap it to the column so neighbours never overlap
+      const cap=Math.min(sizeCeil,0.92*colSpacing), size=rand(0.62*cap,cap);
       // spread further down the tall phone screen so the scene fills, not just the top
       let yTop=rand(0.07, narrow?0.62:0.52)*H;
       // the prev/next preview cards are pinned in the top corners (fixed, ~x<120 / x>W-120,
