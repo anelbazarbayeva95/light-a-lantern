@@ -183,7 +183,16 @@
   #sceneNote .pv-native{font-family:var(--serif);font-style:italic;font-size:20px;line-height:1.32;color:var(--ink);}
   #sceneNote .pv-roman{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-top:7px;}
   #sceneNote .pv-en{font-family:var(--serif);font-size:14px;line-height:1.45;color:var(--ink-2);margin-top:9px;}
-  @media(max-width:760px){#sceneNote{display:none;}}
+  /* on phones: centred just above the dock, smaller — shown once the hero fades on first light */
+  @media(max-width:760px){
+    #sceneNote{left:20px;right:20px;bottom:calc(96px + env(safe-area-inset-bottom));max-width:none;text-align:center;
+      opacity:0;transition:opacity .8s var(--ease);}
+    #sceneNote.show{opacity:0;}
+    body.lit-once #sceneNote.show{opacity:.9;}
+    #sceneNote .pv-native{font-size:17px;}
+    #sceneNote .pv-roman{font-size:9px;margin-top:5px;}
+    #sceneNote .pv-en{font-size:12.5px;margin-top:6px;}
+  }
 
   /* breathing cue */
   #breathCue{position:fixed;left:50%;top:44%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;
@@ -626,7 +635,7 @@
   const layer=document.getElementById("lanterns");
   const hero=document.getElementById("hero"), hint=document.getElementById("hint");
   let heroGone=false;
-  function dismissHero(){ if(heroGone)return; heroGone=true; hero.classList.add("gone"); hint.classList.add("gone"); }
+  function dismissHero(){ if(heroGone)return; heroGone=true; hero.classList.add("gone"); hint.classList.add("gone"); document.body.classList.add("lit-once"); }
 
   const rand=(a,b)=>a+Math.random()*(b-a);
 
