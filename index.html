@@ -203,8 +203,9 @@
   @media(prefers-reduced-motion:reduce){
     .sway,.star,#breathCue.active,.lantern.lit svg .core,.lantern.entering,.lantern.leaving,
     #lanterns.breathing .lantern.lit .halo,#lanterns.breathing .lantern.lit svg .core{animation:none!important;}
-    .lantern.releasing{animation:releaseR 2s ease forwards;}
-    @keyframes releaseR{to{opacity:0}}
+    /* release is a deliberate, single upward drift — keep it flying even with reduced motion, just gentler (no rotate) */
+    .lantern.releasing{animation:releaseR 5.5s ease forwards;}
+    @keyframes releaseR{to{opacity:0;transform:translateY(-130vh);}}
   }
   @media(max-width:640px){
     nav .links{gap:16px;}
