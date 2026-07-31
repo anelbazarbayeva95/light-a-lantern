@@ -612,22 +612,22 @@
     // keep a margin off both edges so the night never feels crowded at the sides.
     const marginX=Math.min(160,W*0.09), usable=W-marginX*2;
     const narrow=W<640;
-    // largest a lantern may get, scaled down on smaller viewports
-    const sizeCeil=168*Math.max(0.5,Math.min(1,W/1200));
-    // one lantern per column; more columns on phones (bodies are only ~70% of each
-    // svg's width, so they can sit closer than the raw size suggests) — aim ~5–6 on
-    // a phone, up to the density setting on wide screens.
+    // largest a lantern may get, kept generous so lanterns read big and full
+    const sizeCeil=168*Math.max(0.82,Math.min(1,W/1200));
+    // one lantern per column; aim ~5–6 on a phone, up to the density on wide screens
     const packW=narrow?62:Math.max(96,sizeCeil*0.62);
     const cols=Math.max(2,Math.min(state.density,Math.floor(usable/packW)));
     const colSpacing=usable/cols;
     const order=[...Array(cols).keys()].sort(()=>Math.random()-0.5);
     for(let i=0;i<cols;i++){
       const c=order[i];
-      const x=marginX+(c+rand(0.44,0.56))*colSpacing;
-      // vary each lantern's size, but cap it to the column so neighbours never overlap
-      const cap=Math.min(sizeCeil,0.92*colSpacing), size=rand(0.62*cap,cap);
-      // spread further down the tall phone screen so the scene fills, not just the top
-      let yTop=rand(0.07, narrow?0.62:0.52)*H;
+      const x=marginX+(c+rand(0.4,0.6))*colSpacing;
+      // wide size variety — some big, some the same, some clearly smaller. Bodies are
+      // ~70% of svg width, so big neighbours only gently layer (z-index gives depth)
+      // rather than colliding; vertical stagger keeps a bit of air between them.
+      const cap=Math.min(sizeCeil,1.55*colSpacing), size=rand(0.55*cap,cap);
+      // spread down the tall phone screen so the scene fills, not just the top
+      let yTop=rand(0.06, narrow?0.6:0.5)*H;
       // the prev/next preview cards are pinned in the top corners (fixed, ~x<120 / x>W-120,
       // down to y≈190); keep any lantern that reaches into those zones hanging clear below them.
       if((x-size/2 < 120) || (x+size/2 > W-120)) yTop=Math.max(yTop,215);
