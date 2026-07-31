@@ -607,16 +607,22 @@
   let sceneToken=0;
   function createLanterns(){
     layer.innerHTML="";
-    const pal=state.palette, W=window.innerWidth, H=window.innerHeight, n=state.density;
+    const pal=state.palette, W=window.innerWidth, H=window.innerHeight;
     // sparse hanging arrangement: one lantern per shuffled column, generous air.
     // keep a margin off both edges so the night never feels crowded at the sides.
     const marginX=Math.min(160,W*0.09), usable=W-marginX*2;
-    const cols=n, order=[...Array(n).keys()].sort(()=>Math.random()-0.5);
-    for(let i=0;i<n;i++){
+    // lanterns scale down on smaller viewports so they don't crowd
+    const sizeScale=Math.max(0.62,Math.min(1,W/1100)), sizeMin=112*sizeScale, sizeMax=168*sizeScale;
+    // one lantern per column; cap columns by width so bodies keep their distance —
+    // tight on phones (≈one body wide), more generous on wide screens.
+    const t=Math.max(0,Math.min(1,(W-700)/500)), packW=sizeMax*(1-0.5*t);
+    const cols=Math.max(2,Math.min(state.density,Math.floor(usable/packW)));
+    const order=[...Array(cols).keys()].sort(()=>Math.random()-0.5);
+    for(let i=0;i<cols;i++){
       const c=order[i];
       const x=marginX+(c+rand(0.3,0.7))*(usable/cols);
-      const size=rand(112,168);
-      let yTop=rand(0.08,0.5)*H;
+      const size=rand(sizeMin,sizeMax);
+      let yTop=rand(0.08,0.52)*H;
       // the prev/next preview cards are pinned in the top corners (fixed, ~x<120 / x>W-120,
       // down to y≈190); keep any lantern that reaches into those zones hanging clear below them.
       if((x-size/2 < 120) || (x+size/2 > W-120)) yTop=Math.max(yTop,215);
