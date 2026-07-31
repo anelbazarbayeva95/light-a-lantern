@@ -30,7 +30,7 @@ The whole app is one IIFE. Key concepts, in dependency order:
 
 ## Conventions
 
-- **Layout breathing room:** `createLanterns()` lays out one lantern per shuffled column, but insets the usable width by a horizontal margin (`marginX = min(160, W*0.09)`) so lanterns never hug the left/right screen edges. Keep this margin when changing the layout — the scene should feel airy, not crowded at the sides.
+- **Layout breathing room:** `createLanterns()` lays out one lantern per shuffled column, but insets the usable width by a horizontal margin (`marginX = min(160, W*0.09)`) so lanterns never hug the left/right screen edges. It also keeps the **top corners clear of the fixed prev/next preview cards**: any lantern whose body reaches into those zones (`x−size/2 < 120` or `x+size/2 > W−120`) is dropped to hang below them (`yTop ≥ 215`). The cards are position:fixed and don't scale with width, so this guard — not the width-proportional margin — is what prevents corner overlap on narrow screens. Keep both when changing the layout; the scene should feel airy, not crowded at the sides or clashing with the cards.
 - Respect `prefers-reduced-motion` (already gated via the `reduceMotion` flag and a CSS media block) when adding animation.
 - Typography is a system serif stack for display + a mono stack for labels; the palette lives in `:root` CSS variables. Keep the deliberate single dark "night" aesthetic.
 - Because everything ships in one file with a strict single-file constraint, do **not** introduce external requests, CDN links, fonts, or a build pipeline.
