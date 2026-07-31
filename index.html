@@ -506,29 +506,38 @@
   let svgSeq=0;
   function lanternSVG(kind, silk){
     const id=++svgSeq, cx=60;
-    const defs = `<defs><linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lighten(silk,28)}"/><stop offset="50%" stop-color="${silk}"/><stop offset="100%" stop-color="${darken(silk,28)}"/></linearGradient>`
+    // stronger two-tone ombre: bright warm crown fading into a deep saturated base
+    const defs = `<defs><linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lighten(silk,44)}"/><stop offset="42%" stop-color="${lighten(silk,6)}"/><stop offset="100%" stop-color="${darken(silk,32)}"/></linearGradient>`
       + `<radialGradient id="c${id}" cx="50%" cy="46%" r="62%"><stop offset="0%" stop-color="rgba(255,247,225,0.94)"/><stop offset="45%" stop-color="rgba(255,216,150,0.5)"/><stop offset="100%" stop-color="rgba(255,180,90,0)"/></radialGradient></defs>`;
     const core=(cy,rx,ry)=>`<ellipse class="core" cx="60" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#c${id})"/>`;
     const goldCap=(x,y,w)=>`<rect x="${x}" y="${y}" width="${w}" height="6" rx="3" fill="#8f6a24"/>`;
     const barrel=(top,bot,topH,halfW,botH)=>{const mid=(top+bot)/2;return `M${cx-topH},${top} Q ${cx-halfW},${mid} ${cx-botH},${bot} L ${cx+botH},${bot} Q ${cx+halfW},${mid} ${cx+topH},${top} Z`;};
-    const vribs=(top,bot,topH,halfW,botH)=>{const mid=(top+bot)/2;let r="";[-1,-0.6,-0.2,0.2,0.6,1].forEach(f=>{r+=`<path d="M${(cx+f*topH).toFixed(1)},${top} Q ${(cx+f*halfW).toFixed(1)},${mid} ${(cx+f*botH).toFixed(1)},${bot}" fill="none" stroke="rgba(20,12,8,0.3)" stroke-width="${Math.abs(f)>0.9?0.9:0.5}"/>`;});return r;};
-    const tassel=(y,col)=>{const c=col||"#c79a3f";return `<line x1="60" y1="${y}" x2="60" y2="${y+16}" stroke="#8f6a24" stroke-width="1.4"/><circle cx="60" cy="${y+18}" r="3.2" fill="${c}"/><g stroke="${c}" stroke-width="1.3"><line x1="60" y1="${y+20}" x2="57" y2="${y+40}"/><line x1="60" y1="${y+20}" x2="60" y2="${y+43}"/><line x1="60" y1="${y+20}" x2="63" y2="${y+40}"/></g>`;};
+    const vribs=(top,bot,topH,halfW,botH)=>{const mid=(top+bot)/2;let r="";[-1,-0.6,-0.2,0.2,0.6,1].forEach(f=>{r+=`<path d="M${(cx+f*topH).toFixed(1)},${top} Q ${(cx+f*halfW).toFixed(1)},${mid} ${(cx+f*botH).toFixed(1)},${bot}" fill="none" stroke="rgba(20,12,8,0.28)" stroke-width="${Math.abs(f)>0.9?0.9:0.5}"/>`;});return r;};
+    // ornate finish — a bristle fringe under the bottom cap, then a long tassel
+    const fringe=(y,halfW,col)=>{const c=col||"#caa23e",n=Math.max(7,Math.round(halfW*0.55));let f="";for(let i=0;i<=n;i++){const fx=cx-halfW+i*(2*halfW/n),len=7+(i%2?2.5:0);f+=`<line x1="${fx.toFixed(1)}" y1="${y}" x2="${fx.toFixed(1)}" y2="${(y+len).toFixed(1)}" stroke="${c}" stroke-width="1.1"/>`;}return f;};
+    const tassel=(y,col)=>{const c=col||"#c79a3f";return `<line x1="60" y1="${y}" x2="60" y2="${y+20}" stroke="#8f6a24" stroke-width="1.4"/><circle cx="60" cy="${y+22}" r="3.4" fill="${c}"/><g stroke="${c}" stroke-width="1.4"><line x1="60" y1="${y+24}" x2="56" y2="${y+52}"/><line x1="60" y1="${y+24}" x2="60" y2="${y+56}"/><line x1="60" y1="${y+24}" x2="64" y2="${y+52}"/></g>`;};
+    // gold floral motif painted on the silk (sits under the scrim, so it dims when unlit and glows when lit)
+    const flower=(x,y,r)=>{let s="";for(let k=0;k<5;k++){const a=(k*72-90)*Math.PI/180;s+=`<circle cx="${(x+Math.cos(a)*r).toFixed(1)}" cy="${(y+Math.sin(a)*r).toFixed(1)}" r="${(r*0.6).toFixed(1)}"/>`;}return `<g fill="rgba(242,224,152,0.9)">${s}<circle cx="${x}" cy="${y}" r="${(r*0.5).toFixed(1)}" fill="#f6ecc0"/></g>`;};
+    const sprig=(mx,my,sc)=>`<g class="motif" transform="translate(${mx},${my}) scale(${sc})">`
+      +`<g fill="none" stroke="rgba(236,212,142,0.72)" stroke-width="0.9" stroke-linecap="round"><path d="M0,30 C -4,12 5,-4 -2,-25"/><path d="M-1,9 C 10,6 15,-4 15,-16"/><path d="M0,-1 C -9,-4 -14,-12 -13,-22"/><path d="M-1,18 C 6,16 10,10 10,3"/></g>`
+      +flower(-2,-25,4)+flower(15,-16,3.3)+flower(-13,-22,3.1)+flower(10,3,2.6)
+      +`<g fill="rgba(206,184,120,0.5)"><ellipse cx="6" cy="17" rx="3.4" ry="1.5" transform="rotate(-28 6 17)"/><ellipse cx="-7" cy="5" rx="3.2" ry="1.4" transform="rotate(28 -7 5)"/></g></g>`;
     let content="", vbH=216;
 
     if(kind==="round"){                       // Chinese Dēnglóng
-      const top=22,bot=150,halfW=55,topH=32,botH=34,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH);
-      content=`<path class="silk" d="${body}" fill="url(#g${id})"/>`+core(mid+2,34,44)+vribs(top,bot,topH,halfW,botH)
+      const top=22,bot=152,halfW=60,topH=30,botH=32,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH);
+      content=`<path class="silk" d="${body}" fill="url(#g${id})"/>`+core(mid+2,38,48)+vribs(top,bot,topH,halfW,botH)+sprig(60,mid+18,1.0)
         +`<path class="scrim" d="${body}" fill="#06040c"/>`
-        +goldCap(cx-topH,top-5,2*topH)+`<rect x="55" y="${top-13}" width="10" height="9" rx="2" fill="#5e3f18"/>`+goldCap(cx-botH,bot-1,2*botH)+tassel(bot+6,"#c0402b");
-      vbH=bot+56;
+        +goldCap(cx-topH,top-5,2*topH)+`<rect x="55" y="${top-13}" width="10" height="9" rx="2" fill="#5e3f18"/>`+goldCap(cx-botH,bot-1,2*botH)+fringe(bot+5,botH+4,"#c0402b")+tassel(bot+15,"#c0402b");
+      vbH=bot+76;
     } else if(kind==="chochin"){              // Japanese Chōchin (horizontal ribs)
-      const top=20,bot=170,halfW=45,topH=37,botH=37,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH);
+      const top=20,bot=170,halfW=50,topH=37,botH=37,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH);
       let rings="";for(let i=1;i<=10;i++){const y=top+i/11*(bot-top),t=(y-top)/(bot-top),ww=halfW*(1-0.26*Math.abs(1-2*t));rings+=`<path d="M${(cx-ww).toFixed(1)},${y.toFixed(1)} Q 60,${(y+2.4).toFixed(1)} ${(cx+ww).toFixed(1)},${y.toFixed(1)}" fill="none" stroke="rgba(20,12,8,0.26)" stroke-width="0.7"/>`;}
-      content=`<path class="silk" d="${body}" fill="url(#g${id})"/>`+core(mid,26,50)+rings
+      content=`<path class="silk" d="${body}" fill="url(#g${id})"/>`+core(mid,26,50)+rings+sprig(60,mid+14,0.86)
         +`<path class="scrim" d="${body}" fill="#06040c"/>`
         +`<rect x="${cx-16}" y="${top-4}" width="32" height="5" rx="2" fill="#2a1c10"/><rect x="57" y="${top-11}" width="6" height="7" rx="2" fill="#2a1c10"/>`
-        +`<rect x="${cx-14}" y="${bot-1}" width="28" height="5" rx="2" fill="#2a1c10"/>`+tassel(bot+4,"#c0402b");
-      vbH=bot+52;
+        +`<rect x="${cx-14}" y="${bot-1}" width="28" height="5" rx="2" fill="#2a1c10"/>`+fringe(bot+5,18,"#c0402b")+tassel(bot+13,"#c0402b");
+      vbH=bot+72;
     } else if(kind==="andon"){                // Japanese Andon (square wooden frame)
       const x0=cx-40,y0=24,w=80,h=144,bot=y0+h,r=`x="${x0}" y="${y0}" width="${w}" height="${h}" rx="4"`;
       content=`<rect class="silk" ${r} fill="url(#g${id})"/>`+core(y0+h/2,34,52)
@@ -537,15 +546,15 @@
         +`<rect x="${cx-30}" y="14" width="60" height="9" rx="2" fill="#2a1c10"/><rect x="${cx-46}" y="${bot}" width="92" height="9" rx="2" fill="#241a10"/>`;
       vbH=bot+16;
     } else if(kind==="korean"){               // Korean Cheongsachorong (blue/red split)
-      const top=22,bot=164,halfW=40,topH=34,botH=34,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH),blue="#2f5aa8",red="#c0392b";
+      const top=22,bot=164,halfW=46,topH=32,botH=32,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH),blue="#2f5aa8",red="#c0392b";
       content=`<defs><clipPath id="k${id}"><path d="${body}"/></clipPath>`
-        +`<linearGradient id="gb${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lighten(blue,26)}"/><stop offset="100%" stop-color="${darken(blue,16)}"/></linearGradient>`
-        +`<linearGradient id="gr${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lighten(red,20)}"/><stop offset="100%" stop-color="${darken(red,18)}"/></linearGradient></defs>`
+        +`<linearGradient id="gb${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lighten(blue,30)}"/><stop offset="100%" stop-color="${darken(blue,16)}"/></linearGradient>`
+        +`<linearGradient id="gr${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lighten(red,24)}"/><stop offset="100%" stop-color="${darken(red,18)}"/></linearGradient></defs>`
         +`<g class="silk" clip-path="url(#k${id})"><rect x="0" y="${top-2}" width="120" height="${mid-top+2}" fill="url(#gb${id})"/><rect x="0" y="${mid}" width="120" height="${bot-mid+2}" fill="url(#gr${id})"/></g>`
-        +core(mid,24,46)+vribs(top,bot,topH,halfW,botH)
+        +core(mid,24,46)+vribs(top,bot,topH,halfW,botH)+sprig(60,mid+16,0.9)
         +`<path class="scrim" d="${body}" fill="#06040c"/>`
-        +goldCap(cx-topH,top-5,2*topH)+`<rect x="57" y="${top-13}" width="6" height="9" rx="2" fill="#5e3f18"/>`+goldCap(cx-botH,bot-1,2*botH)+tassel(bot+6,"#e0c060");
-      vbH=bot+56;
+        +goldCap(cx-topH,top-5,2*topH)+`<rect x="57" y="${top-13}" width="6" height="9" rx="2" fill="#5e3f18"/>`+goldCap(cx-botH,bot-1,2*botH)+fringe(bot+5,botH+4,"#e0c060")+tassel(bot+15,"#e0c060");
+      vbH=bot+76;
     } else if(kind==="kandil"){               // Indian Kandil (8-point star)
       const cyc=94,outer=54,inner=27,pts=[];
       for(let k=0;k<16;k++){const R=k%2?inner:outer,a=(-90+k*22.5)*Math.PI/180;pts.push([(cx+R*Math.cos(a)).toFixed(1),(cyc+R*Math.sin(a)).toFixed(1)]);}
@@ -589,11 +598,11 @@
         +`<rect x="${x0-4}" y="${bot-7}" width="${w+8}" height="11" rx="3" fill="#2e2214"/>`;
       vbH=bot+12;
     } else {                                   // Hội An barrel (default)
-      const top=16,bot=150,halfW=42,topH=26,botH=28,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH);
-      content=`<path class="silk" d="${body}" fill="url(#g${id})"/>`+core(mid+4,25,45)+vribs(top,bot,topH,halfW,botH)
+      const top=16,bot=150,halfW=48,topH=24,botH=26,mid=(top+bot)/2,body=barrel(top,bot,topH,halfW,botH);
+      content=`<path class="silk" d="${body}" fill="url(#g${id})"/>`+core(mid+4,28,46)+vribs(top,bot,topH,halfW,botH)+sprig(60,mid+16,0.92)
         +`<path class="scrim" d="${body}" fill="#06040c"/>`
-        +goldCap(cx-topH,top-5,2*topH)+`<rect x="57" y="${top-12}" width="6" height="8" rx="2" fill="#5e3f18"/>`+goldCap(cx-botH,bot-1,2*botH)+tassel(bot+6);
-      vbH=bot+52;
+        +goldCap(cx-topH,top-5,2*topH)+`<rect x="57" y="${top-12}" width="6" height="8" rx="2" fill="#5e3f18"/>`+goldCap(cx-botH,bot-1,2*botH)+fringe(bot+5,botH+4)+tassel(bot+15);
+      vbH=bot+74;
     }
     return `<svg viewBox="0 0 120 ${vbH}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMin meet" aria-hidden="true">${defs}${content}</svg>`;
   }
